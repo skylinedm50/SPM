@@ -1,0 +1,163 @@
+header.major
+	h3 Actividad / Obra
+#btnNuevoActividad.margin-bottom
+#dgdActividad.margin-bottom
+#btnGuardarActividad.margin-bottom
+
+script.
+
+	var act_obras = !{JSON.stringify(act_obras)},
+		proyectos = !{JSON.stringify(proyectos)},
+		programas = !{JSON.stringify(programas)}
+
+	$( () => {
+
+		$('#btnNuevoActividad').dxButton({
+			text: 'Nueva Actividad/Obra',
+			type: 'default',
+			onClick: (info) => {
+				$('#dgdActividad').dxDataGrid('instance').addRow()
+			}
+		})
+
+		$('#dgdActividad').dxDataGrid({
+			dataSource: act_obras,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			columnHidingEnabled: true,
+			editing: {
+				mode: 'cell',
+				allowUpdating: true
+			},
+			columns: [
+				{
+					allowEditing: false,
+					caption: 'Código',
+					dataField: 'cod_act_obra',
+					visible: false
+				},
+				{
+					dataField: 'cod_programa',
+					caption: 'No. Programa',
+					lookup : {
+						dataSource: programas,
+						displayExpr: 'numero_programa',
+						valueExpr: 'cod_programa',
+						allowClearing: true
+					},
+					width: 100
+				},
+				{
+					dataField: 'cod_proyecto',
+					caption: 'No. Proyecto',
+					lookup : {
+						dataSource: proyectos,
+						displayExpr: 'numero_proyecto',
+						valueExpr: 'cod_proyecto',
+						allowClearing: true
+					},
+					width: 100
+				},
+				{
+					caption: 'Nro.',
+					dataField: 'numero_act_obra',
+					validationRules: [
+						{ type: 'required' }, 
+						{ type: 'stringLength', max: 50 }
+					],
+					width: 100
+				},
+				{
+					caption: 'Nombre',
+					dataField: 'nombre_act_obra',
+					validationRules: [
+						{ type: 'required' },
+						{ type: 'stringLength', max: 200 }
+					]
+				},
+				{
+					caption: 'Descripción',
+					dataField: 'descripcion_act_obra',
+					validationRules: [
+						{ type: 'stringLength', max: 500 }
+					]
+				}
+			]
+		})
+
+		$('#btnGuardarActividad').dxButton({
+			text: 'Guardar Actividad/Obra',
+			type: 'default',
+			onClick: (info) => {
+
+				$('#dgdActividad').dxDataGrid('instance').saveEditData().then( () => {
+
+					debugger
+
+					let data = {
+						cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia,
+						act_obras: $('#dgdActividad').dxDataGrid('instance').getDataSource().store()._array
+					} 
+
+
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/guardarAct_Obra',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						dataType: 'json',
+						encode: true,
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+
+						let flag = false
+						
+						for (let i = 0, len = response.length; i < len; i++) {
+							if (response[i] == 0)
+								flag = true
+						}
+
+						jQuery('body').css('overflow', 'visible')
+						$("#myModal").css("display", "none")
+						$('.spinner').hide()
+
+						if (flag) {
+							DevExpress.ui.notify({
+								message: 'Ocurrio un error al intentar guardar uno o más actividades.',
+								type: 'error',
+								displayTime: 5000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						} else {
+							DevExpress.ui.notify({
+								message: 'Actividades guardados exitosamente.',
+								type: 'success',
+								displayTime: 3000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						}
+					})
+
+				})
+			}
+		})
+	})

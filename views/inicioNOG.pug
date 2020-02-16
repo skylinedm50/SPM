@@ -1,0 +1,89 @@
+extends layout.pug
+
+block content
+
+	script.
+		var isMobile = {
+			Android: function() {
+				return navigator.userAgent.match(/Android/i);
+			},
+			BlackBerry: function() {
+				return navigator.userAgent.match(/BlackBerry/i);
+			},
+			iOS: function() {
+				return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+			},
+			Opera: function() {
+				return navigator.userAgent.match(/Opera Mini/i);
+			},
+			Windows: function() {
+				return navigator.userAgent.match(/IEMobile/i);
+			},
+			any: function() {
+				return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+			}
+		}
+
+		if(isMobile.any()) {
+			window.location.replace('/movil')
+		}
+
+			
+		
+		
+			
+
+	link(href='/css/font-awesome.min.css', rel='stylesheet')
+	link(href='/css/main.css', rel='stylesheet')
+	style.
+		
+		.ContenedorBanner {
+			width: 524px;
+			height: 481px;
+			margin: 5% auto;
+			margin-bottom: 1%;
+			background-size: 100% 100%;
+			background-position: center center;
+			background-repeat: no-repeat;
+			background-image: url(/img/SPM_logo.png);
+		}
+
+	header#header
+		a.logo
+			strong NUEVAS OPERACIONES GERENCIALES
+		ul.icons
+			li
+				a.icon.fa.fa-user
+					span= username
+			li
+				input(id = "btnCerrarSesion", type = "button", value = 'Cerrar Sesión')
+			li 
+			
+
+		
+
+
+	#wrapper
+		#main
+			.inner
+				section
+					.ContenedorBanner
+		#sidebar
+			.inner
+				include menu.pug
+
+	script.
+			$("#btnCerrarSesion").click( () => {
+					location.href = "/loguot"
+				})
+
+
+
+
+			
+
+
+		
+				
+
+		

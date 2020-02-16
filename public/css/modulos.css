@@ -1,0 +1,234 @@
+﻿html {	  
+	background-attachment: fixed;
+	/*background-image:url("/img/FondoModulos.png");*/
+	background-image:url("/img/FondoLogin.png");
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-size: cover;
+	font-family: "Helvetica Neue", FontAwesome, Helvetica, Arial, sans-serif;
+	margin:0;
+	padding:0;
+}
+/*
+body {
+}
+*/
+
+#Container {
+	background-repeat: no-repeat;
+	width: 95%;
+	margin: 0 auto 0 auto;
+	/*border: 1px solid red;*/
+	padding:30px 30px 30px 30px;
+	/*background-image:url("/img/FondoLogin.png");*/
+}
+
+header {
+	background: white;
+	box-shadow: 0 0 5px rgba(0,0,0,0.1);
+	/*border-bottom: 1px solid #666;*/
+	border-color: #e5e5e5;
+	width: 100%;
+	height: 65px;
+	padding:0;
+	margin:0;
+	/*position: fixed;*/
+}
+
+
+center {
+	font-size: 16px;
+	text-transform: capitalize;
+	/*color: #A4A4A4;*/
+	color:#424242;
+	margin:0 auto;
+	vertical-align:middle;
+	float:right;
+}
+
+h2 {
+	/*color:#A4A4A4;*/
+	color:#424242;
+	line-height:65px;
+	margin:0 40px;
+	font-weight: bold;
+	font-size:18px;
+	width: 80%;
+	display: inline-block;
+}
+
+hr {
+	margin-bottom: 20px;
+}
+
+nav {
+	width:300px;
+	/*border: 1px solid black;*/
+	height:800px;
+	float:left;
+	background: white;
+	box-shadow: 0 0 5px rgba(0,0,0,0.1);
+	/*background-color: #f1f1f1;*/
+	/*border-right: 1px solid #666;*/
+	border-color: #e5e5e5;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+ 
+nav ul,a {
+	list-style:none;
+	text-decoration: none;
+	margin: 0 auto;
+	padding:0;
+	/*color:#A4A4A4;*/
+	color:#424242;
+	text-indent:15px;
+}
+
+nav li a{
+	/*border: 1px solid black;*/
+	width: 100%;
+	max-width: 300px;
+	padding:4px;
+	line-height:40px;
+	font-size:16px;
+	display:block;
+}
+
+nav li a:hover {
+	position: relative;
+	-webkit-transition: all 0.4s ease;
+	-o-transition: all 0.4s ease;
+	transition: all 0.4s ease;
+	background-color:#424242;
+	color:white;
+}
+
+#tituloMenu ul a {
+	list-style:none;
+	text-decoration: none;
+	padding:0;
+}
+
+#tituloMenu li{
+	/*border: 1px solid black;*/
+	height:40px;
+	line-height:40px;
+}
+
+section {
+	display: inline-block;
+	margin:0 auto;
+	width:73%;
+	height:auto;
+	position:absolute;
+	/*border:1px solid black;*/
+}
+
+.BloqueImagenVM  {
+	width:608px;
+	height:534px;
+   /*background-color:red;*/
+   margin: 35px auto;
+   background-image:url("/img/VidaMejorFondo.png");
+   background-repeat:no-repeat;
+}
+
+#btnLogout {
+	/*position: fixed;*/
+	width: 150px;
+	height: 40px;
+	outline: none;
+	border: none;
+	color:white;
+	font-size:15px;
+	font-weight: bold;
+	/*margin: 45px 100px;*/
+	cursor: pointer;
+	float:right;
+	clear:both;
+	padding:10px;
+	background-color: #1787C8;
+}
+
+#btnLogout:hover{
+	background-color: #1787C8;
+}
+
+/*.ModBloqued {
+
+	
+	display:none;
+
+   cursor: pointer;
+ 
+}*/
+
+#content {
+	display: inline-block;
+	vertical-align:top;
+	padding: 40px;
+	width:70%;
+	/*border: 1px solid green;*/
+	/*height:750px;*/
+	/*margin:-20px auto;*/
+	/*overflow:auto;*/
+}
+
+#MenuContainer {
+    display: inline-block;
+    /*width: auto;*/
+}
+
+.button {
+    width: 150px;
+    height: 40px;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 10px;
+    background-color: #1787C8;
+}
+
+.button:hover {
+	background: #0e5279;
+}
+
+@media only screen and (min-width:1000px) {
+	/*
+	#MenuContainer {
+		width: 25%;
+	}
+	*/
+
+	.col-50 {
+		display: block;
+		width: 100%;
+	}
+}
+
+@media screen and (min-width: 1200px) {
+	/*
+	#MenuContainer {
+		display: inline-block;
+		width: 25%;
+	}
+	*/
+}
+
+@media screen and (min-width: 1000) and (max-width: 1200px) {
+	
+	#MenuContainer {
+		display: inline-block;
+		width: 25%;
+	}
+	
+}
+

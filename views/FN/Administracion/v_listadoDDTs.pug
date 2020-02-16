@@ -1,0 +1,159 @@
+extends ../layout.pug
+
+block head
+	style.
+
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+block content	
+	header.major
+		h2 Listado de Dependencias
+	#btnNuevoDDT.margin-bottom
+	#gridDDTs
+	include ../../spinner.pug
+
+block scripts
+	script.
+		var direcciones = !{JSON.stringify(direcciones)},
+			DDTs = !{JSON.stringify(DDTs)}
+		
+		function guardarDDT(data, callback) {
+
+			$.ajax({
+				type: 'POST',
+				url: '/fn/administracion/guardarDDT',
+				data: data,
+				dataType: 'json',
+				encode: true,
+				beforeSend: () => {
+					$('.spinner').show()
+				}
+			})
+			.done( (response) => {
+				$('.spinner').hide()
+				callback(response.codigo)
+			})
+		}
+
+		function load() {
+
+			$('#btnNuevoDDT').dxButton({
+				text: 'Nueva Dependencia',
+				type: 'default',
+				onClick: (info) => {
+					$('#gridDDTs').dxDataGrid('instance').addRow()
+				}
+			})
+
+			$('#gridDDTs').dxDataGrid({
+				dataSource: direcciones,
+				paging: {
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				columnAutoWidth: true,
+				showColumnLines: false,
+				showRowLines: true,
+				rowAlternationEnabled: true,
+				showBorders: false,
+				columnHidingEnabled: true,
+				editing: {
+					mode: 'popup',
+					allowUpdating: true,
+					popup: {
+						title: "Información de la Dependencia",
+						showTitle: true,
+						width: 800,
+						height: 400,
+						position: {
+							my: "center",
+							at: "center",
+							of: window
+						}
+					}
+				},
+				columns: [
+					{
+						dataField: 'cod_direccion',
+						visible: false,
+						allowEditing: false,
+						formItem: {
+							visible: false
+						}
+					},
+					{
+						caption: 'Tipo',
+						dataField: 'cod_tipo_direccion',
+						lookup : {
+							dataSource: DDTs,
+							displayExpr: 'nombre_tipo_direccion',
+							valueExpr: 'cod_tipo_direccion'
+						},
+						validationRules: [{ type: 'required' }]
+					},
+					{
+						caption: 'Nombre',
+						dataField: 'nombre_direccion',
+						validationRules: [
+							{ type: 'required' }, 
+							{ type: 'stringLength', max: 50}
+						]
+					},
+					{
+						caption: 'Responsable',
+						dataField: 'responsable_direccion',
+						validationRules: [
+							{ type: 'required' }, 
+							{ type: 'stringLength', max: 50}
+						]
+					},
+					{
+						caption: 'Cargo',
+						dataField: 'cargo_responsable',
+						validationRules: [
+							{ type: 'required' }, 
+							{ type: 'stringLength', max: 50}
+						]
+					},
+					{
+						caption: 'Correo',
+						dataField: 'correo_responsable',
+						validationRules: [
+							{ type: 'required' },
+							{ type: 'email' }
+						]
+					},
+					{
+						caption: 'Teléfono',
+						dataField: 'telefono_responsable',
+						validationRules: [
+							{ type: 'required' }, 
+							{ type: 'numeric' },
+							{ type: 'stringLength', max: 8}
+						]
+					}
+				],
+				onRowInserted: (e) => {
+
+					e.data.cod_direccion = 0
+
+					guardarDDT(e.data, (codigo) => {
+
+						let arr = $('#gridDDTs').dxDataGrid('instance').getDataSource().items()
+						for (let i = 0, len = arr.length; i < len; i++) {
+							if (arr[i].cod_tipo_direccion === e.data.cod_tipo_direccion && arr[i].nombre_direccion === e.data.nombre_direccion && arr[i].responsable_direccion === e.data.responsable_direccion)
+								$('#gridDDTs').dxDataGrid('instance').getDataSource().items()[i].cod_direccion = codigo
+						}
+					})
+				},
+				onRowUpdated: (e) => {
+					guardarDDT(e.key, (codigo) => {})
+				}
+			})
+		}

@@ -1,0 +1,426 @@
+doctype html
+html
+	head
+		meta(charset="utf-8")
+		meta(name="viewport", content="width=device-width,initial-scale=1.0, maximum-scale=1.0")
+		title= title
+		- var content = description
+		meta(name="description", content=content)
+		link(href='/css/font-awesome.min.css', rel='stylesheet')
+		link(href='/css/main.css', rel='stylesheet')
+
+		script(src='/js/jquery.min.js')
+		script(src='/js/skel.min.js')
+		script(src='/js/util.js')
+		script(src='/js/main.js')
+
+		script(src='/js/jquery-3.1.0.min.js')
+		link(rel='stylesheet', type="text/css", href='/css/dx.common.css')
+		link(rel='dx-theme', data-theme='generic.light', href='/css/dx.light.css')
+		script(src='/js/cldr.min.js')
+		script(src='/js/cldr/event.min.js')
+		script(src='/js/cldr/supplemental.min.js')
+		script(src='/js/cldr/unresolved.min.js')
+		script(src='/js/globalize.min.js')
+		script(src='/js/globalize/message.min.js')
+		script(src='/js/globalize/number.min.js')
+		script(src='/js/globalize/currency.min.js')
+		script(src='/js/globalize/date.min.js')
+		script(src='/js/jszip.min.js')
+		script(src='/js/dx.all.js')
+		script(src='/js/localization/dx.messages.es.js')
+		script.
+			$.when(
+				$.getJSON('/js/cldr/main/es-HN/ca-gregorian.json'),
+				$.getJSON('/js/cldr/main/es-HN/numbers.json'),
+				$.getJSON('/js/cldr/main/es-HN/currencies.json'),
+				$.getJSON('/js/cldr/supplemental/likelySubtags.json'),
+				$.getJSON('/js/cldr/supplemental/timeData.json'),
+				$.getJSON('/js/cldr/supplemental/weekData.json'),
+				$.getJSON('/js/cldr/supplemental/currencyData.json'),
+				$.getJSON('/js/cldr/supplemental/numberingSystems.json')
+			).then(function() {
+				//The following code converts the got results into an array
+				return [].slice.apply( arguments, [0] ).map(function( result ) {
+					return result[ 0 ];
+				});
+			}).then(
+				Globalize.load //loads data held in each array item to Globalize
+			).then(function() {
+				DevExpress.localization.locale('es')
+				Globalize.locale('es-HN')
+			})
+	body
+		header#header
+			a.logo
+				strong NUEVAS OPERACIONES GERENCIALES
+			ul.icons
+				li
+					a.icon.fa.fa-user
+						span= username
+				li
+					input(type="button", value='Cerrar Sesión')
+		#wrapper
+			#main
+				.inner
+					section.dx-viewport
+						header.major
+							h2 Cambio de Contraseña
+						#frmUsuario
+
+	
+	script.
+		var usuario = !{JSON.stringify(usuario)},
+			flagUsuario = true,
+			flagContraseña = false
+
+		function tiene_numeros(texto) {
+
+			let numeros = '0123456789'
+			for (let i = 0; i < texto.length; i++) {
+				if (numeros.indexOf(texto.charAt(i), 0) != -1) {
+					return 1
+				}
+			}
+			return 0
+		}
+
+		function tiene_minusculas(texto) {
+
+			let letras = 'abcdefghyjklmnñopqrstuvwxyz'
+			for (let i = 0; i < texto.length; i++) {
+				if (letras.indexOf(texto.charAt(i), 0) != -1) {
+					return 1
+				}
+			}
+			return 0
+		}
+
+		function tiene_mayusculas(texto) {
+
+			let letras_mayusculas = 'ABCDEFGHYJKLMNÑOPQRSTUVWXYZ'
+			for (let i = 0; i < texto.length; i++) {
+				if (letras_mayusculas.indexOf(texto.charAt(i), 0) != -1) {
+					return 1
+				}
+			}
+			return 0
+		}
+
+		$( () => {
+			$('#frmUsuario').dxForm({
+				colCount: 2,
+				formData: usuario,
+				//labelLocation: 'top',
+				items: [
+					{
+						dataField: 'cod_usuario',
+						visible: false
+					},
+					{
+						colSpan: 2,
+						colCount: 2,
+						itemType: 'group',
+						caption: 'Datos Personales',
+						items: [
+							{
+								colSpan: 2,
+								dataField: 'identidad_usuario',
+								editorType: 'dxTextBox',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Nro. Identidad'
+								}
+							},
+							{
+								dataField: 'nombre1_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Primer Nombre'
+								}
+							},
+							{
+								dataField: 'nombre2_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Segundo Nombre'
+								}
+							},
+							{
+								dataField: 'apellido1_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Primer Apellido'
+								}
+							},
+							{
+								dataField: 'apellido2_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Segundo Apellido'
+								}
+							},
+							{
+								dataField: 'telefono_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Nro. Télefono'
+								}
+							},
+							{
+								dataField: 'correo_usuario',
+								editorOptions: {
+									readOnly: true,
+									hoverStateEnabled: false
+								},
+								label: {
+									text: 'Correo'
+								}
+							}
+						]
+					},
+					{
+						colSpan: 2,
+						colCount: 2,
+						itemType: 'group',
+						caption: 'Datos del Sistema',
+						name: 'datosSistema',
+						items: [
+							{
+								colSpan: 2,
+								dataField: 'nombre_usuario',
+								editorType: 'dxTextBox',
+								editorOptions: {
+									onValueChanged: (data) => {
+
+										$.ajax({
+											type: 'POST',
+											url: '/verificarUsuario',
+											data: {
+												nombreUsuario: $('#frmUsuario').dxForm('instance').option().formData.nombre_usuario
+											},
+											dataType: 'json',
+											encode: true,
+											beforeSend: () => {
+												$('.spinner').show()
+											}
+										})
+										.done( (response) => {
+
+											$('.spinner').hide()
+											if (response.valido) {
+												flagUsuario = true
+												DevExpress.ui.notify({
+													message: 'Nombre de usuario valido.',
+													type: 'success',
+													displayTime: 3000,
+													position: {
+														my: 'center top',
+														at: 'center top'
+													}
+												})
+											} else {
+												flagUsuario = false
+												DevExpress.ui.notify({
+													message: 'Ya existe un usuario con ese nombre, por favor ingrese uno nuevo.',
+													type: 'error',
+													displayTime: 5000,
+													position: {
+														my: 'center top',
+														at: 'center top'
+													}
+												})
+											}
+										})
+									}
+								},
+								label: {
+									text: 'Usuario'
+								},
+								isRequired: true
+							},
+							{
+								dataField: 'contraseña_usuario',
+								editorType: 'dxTextBox',
+								editorOptions: {
+									mode: 'password',
+									onValueChanged: (data) => {
+
+										let pass = data.value,
+											message,
+											valido = false
+
+										if (pass.length < 8) {
+											message = 'La contraseña debé poseer al menos 8 caracteres.'
+											valido = false
+										} else if (tiene_mayusculas(pass) == 0) {
+											message = 'La contraseña debe poseer al menos una letra mayuscula.'
+											valido = false
+										} else if (tiene_minusculas(pass) == 0) {
+											message = 'La contraseña debe poseer al menos una letra minuscula.'
+											valido = false
+										} else if (tiene_numeros(pass) == 0) {
+											message = 'La contraseña debe tener al menos un número.'
+											valido = false
+										} else {
+											message = 'Repita la contraseña en el siguiente control.'
+											valido = true
+										}
+
+										if (valido) {
+											$('#frmUsuario').dxForm('instance').getEditor('repetir_contraseña_usuario').option('disabled', false)
+											DevExpress.ui.notify({
+												message: message,
+												type: 'success',
+												displayTime: 3000,
+												position: {
+													my: 'center top',
+													at: 'center top'
+												}
+											})
+										} else {
+											flagContraseña = false
+											$('#frmUsuario').dxForm('instance').getEditor('repetir_contraseña_usuario').option('value', '')
+											$('#frmUsuario').dxForm('instance').getEditor('repetir_contraseña_usuario').option('disabled', true)
+											DevExpress.ui.notify({
+												message: message,
+												type: 'error',
+												displayTime: 5000,
+												position: {
+													my: 'center top',
+													at: 'center top'
+												}
+											})
+										}
+									}
+								},
+								label: {
+									text: 'Contraseña'
+								},
+								isRequired: true
+							},
+							{
+								dataField: 'repetir_contraseña_usuario',
+								editorType: 'dxTextBox',
+								editorOptions: {
+									mode: 'password',
+									onValueChanged: (data) => {
+
+										if (data.value === $('#frmUsuario').dxForm('instance').option().formData.contraseña_usuario) {
+											flagContraseña = true
+											$('#frmUsuario').dxForm('instance').itemOption('btnActualizar',{disabled: false})
+										} else {
+											flagContraseña = false
+											$('#frmUsuario').dxForm('instance').itemOption('btnActualizar',{disabled: true})
+											DevExpress.ui.notify({
+												message: 'La contreña debe coincidir con la ingresada anteriormente.',
+												type: 'error',
+												displayTime: 5000,
+												position: {
+													my: 'center top',
+													at: 'center top'
+												}
+											})
+										}
+									}
+								},
+								label: {
+									text: 'Repetir Contraseña'
+								},
+								isRequired: true
+							}
+						]
+					},
+					{
+						name: 'btnActualizar',
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Actualizar Datos',
+							type: 'default',
+							onClick: (e) => {
+
+								let result = $('#frmUsuario').dxForm('instance').validate()
+								if (result.isValid) {
+
+									if (flagUsuario && flagContraseña) {
+										$.ajax({
+											type: 'POST',
+											url: '/actualizarDatosUsuario',
+											data: {
+												usuario: $('#frmUsuario').dxForm('instance').option().formData.nombre_usuario,
+												contraseña: $('#frmUsuario').dxForm('instance').option().formData.contraseña_usuario
+											},
+											dataType: 'json',
+											encode: true,
+											beforeSend: () => {
+												$('.spinner').show()
+											}
+										})
+										.done( (response) => {
+											
+											$('.spinner').hide()
+											DevExpress.ui.notify({
+												message: 'Datos actualizados, en 5 segundos se le redigirira al inicio de sesión para que inicio nuevamente.',
+												type: 'success',
+												displayTime: 5000,
+												position: {
+													my: 'center top',
+													at: 'center top'
+												}
+											})
+											setTimeout( () => {
+												window.location.replace('/login');
+											}, 5000);
+
+										})
+									} else if (!flagUsuario && flagContraseña) {
+										DevExpress.ui.notify({
+											message: 'El nombre de usuario ingresado no es valido, por favor ingrese uno nuevo.',
+											type: 'error',
+											displayTime: 5000,
+											position: {
+												my: 'center top',
+												at: 'center top'
+											}
+										})
+									} else if (flagUsuario && !flagContraseña) {
+										DevExpress.ui.notify({
+											message: 'La contraseña ingresada no es valida, por favor ingrese una nueva.',
+											type: 'error',
+											displayTime: 5000,
+											position: {
+												my: 'center top',
+												at: 'center top'
+											}
+										})
+									}
+								}
+							}
+						},
+						disabled: true
+					}
+				]
+
+			})
+
+			$('#frmUsuario').dxForm('instance').getEditor('repetir_contraseña_usuario').option('disabled', true)
+		})
+	

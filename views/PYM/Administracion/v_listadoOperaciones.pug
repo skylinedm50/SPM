@@ -1,0 +1,152 @@
+extends ../layout.pug
+
+block head
+	style.
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+block content
+	header.major
+		h2 Listado de Operaciones
+	#btnNuevaOperacion.margin-bottom
+	#dgdOperaciones
+	include ../../spinner.pug
+block scripts
+	script.
+		var sideBarFlag = true,
+			operaciones = !{JSON.stringify(operaciones)}
+		
+		function load() {
+
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					$('#gridOperaciones').dxDataGrid('instance').option('width', $('#gridOperaciones').dxDataGrid('instance').option('width') + $('#sidebar').width())
+					sideBarFlag = false
+				} else {
+					$('#gridOperaciones').dxDataGrid('instance').option('width', $('#gridOperaciones').dxDataGrid('instance').option('width') - $('#sidebar').width())
+					sideBarFlag = true
+				}
+			})
+
+			$('#btnNuevaOperacion').dxButton({
+				text: 'Nueva Operación',
+				type: 'default',
+				onClick: (e) => { 
+					window.location.replace('/pym/administracion/nuevaOperacion')
+				}
+			})
+
+			$('#dgdOperaciones').dxDataGrid({
+				dataSource: operaciones,
+				paging: {
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				/*
+				filterRow: {
+					visible: true,
+					applyFilter: 'auto'
+				},
+				headerFilter: {
+					visible: true
+				},
+				groupPanel: {
+					visible: true
+				},
+				columnChooser: {
+					enabled: true
+				},
+				*/
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				columnAutoWidth: true,
+				columnFixing: { 
+					enabled: true
+				},
+				showColumnLines: false,
+				showRowLines: true,
+				rowAlternationEnabled: true,
+				showBorders: false,
+				columnHidingEnabled: true,
+				/*
+				editing: {
+					mode: 'form',
+					allowUpdating: false,
+					allowDeleting: false,
+					allowAdding: true
+				},
+				*/
+				width: $('section').width(),
+				onContentReady: (e) => {
+					e.element.find('.dx-datagrid-addrow-button').dxButton({
+						onClick: () => {
+							window.location.replace('/pym/administracion/nuevaOperacion')
+						}
+					})
+				},
+				columns: [
+					{
+						width: 100,
+						alignment: 'center',
+						cellTemplate: (container, options) => {
+							$('<a/>').addClass('dx-link')
+								.text('Editar')
+								.on('dxclick', () => {
+									window.location.replace('/pym/administracion/actualizarOperacion/' + options.data.cod_operacion)
+								})
+								.appendTo(container)
+						}
+					},
+					{
+						caption: 'Código',
+						dataField: 'cod_operacion',
+						visible: false,
+						allowEditing: false
+					},
+					{
+						caption: 'Organismo',
+						dataField: 'abrev_organismo_financiero'
+					},
+					{
+						caption: 'Nro Operación',
+						dataField: 'nro_operacion'
+					},
+					{
+						caption: 'Nombre',
+						dataField: 'nombre_operacion'
+					},
+					{
+						caption: 'Inicio',
+						dataField: 'fecha_inicio_operacion',
+						visible: false
+					},
+					{
+						caption: 'Fin',
+						dataField: 'fecha_fin_operacion',
+						visible: false
+					},
+					{
+						caption: 'Descripción',
+						dataField: 'desc_operacion'
+					},
+					{
+						caption: 'Monto',
+						width: 100,
+						alignment: 'center',
+						calculateDisplayValue: (data) => {
+							return '$' + data.monto_operacion.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						caption: 'Estado',
+						dataField: 'estado_operacion',
+						type: 'boolean'
+					}
+				]
+			})
+		}

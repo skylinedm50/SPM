@@ -1,0 +1,474 @@
+extends ../layout.pug
+
+block head
+	script(src='/js/PYM/shared.js')
+	style.
+
+		#divEstructura {
+			display: none;
+		}
+
+		#frmOperacion {
+			margin-bottom: 30px;
+		}
+
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+		.dx-link {
+			margin-right: 5px;
+		}
+
+		.col_33 {
+			display: inline-block;
+			width: 33%;
+			text-align: center;
+		}
+
+block content
+	header.major
+		if operacion.cod_operacion == 0
+			h2 Nueva Operación
+		else
+			h2 Actualizar Operación
+	#frmOperacion.margin-bottom
+	#btnGuardarOperacion.margin-bottom
+	#divEstructura
+		header.major
+			h3 Estructura
+		#divComponentes.col_33
+			#btnComponentes
+		#divSubComponentes.col_33
+			#btnSubcomponentes
+		#divIndcProd.col_33
+			#btnIndcProd
+
+	include ../../spinner.pug
+	include ../../modal.pug
+
+block scripts
+	script.
+
+		var operacion = !{JSON.stringify(operacion)},
+			organismos = !{JSON.stringify(organismos)},
+			sideBarFlag = true
+			//componentes = !{JSON.stringify(componentes)},
+			//subcomponentes = !{JSON.stringify(subcomponentes)},
+			//indicadoresProductos = !{JSON.stringify(indicadoresProductos)}
+			//,nivelesFlag = false
+		
+		function soloNumeros(e){
+			let key = window.Event ? e.which : e.keyCode
+			return (key >= 48 && key <= 57)
+		}
+
+		if (operacion.cod_operacion > 0) {
+			operacion.fecha_inicio_operacion = addDays(new Date(operacion.fecha_inicio_operacion), 1)
+			operacion.fecha_fin_operacion = addDays(new Date(operacion.fecha_fin_operacion), 1)
+		}
+
+		function load() {
+
+			/*
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					$('#gridNiveles').dxDataGrid('instance').option('width', $('#gridNiveles').dxDataGrid('instance').option('width') + $('#sidebar').width())
+					sideBarFlag = false
+				} else {
+					$('#gridNiveles').dxDataGrid('instance').option('width', $('#gridNiveles').dxDataGrid('instance').option('width') - $('#sidebar').width())
+					sideBarFlag = true
+				}
+			})
+			*/
+
+			$('#frmOperacion').dxForm({
+				colCount: 6,
+				formData: operacion,
+				labelLocation: 'top',
+				items: [
+					{//código
+						dataField: 'cod_operacion',
+						visible: false
+					},
+					{//nombre
+						colSpan: 6,
+						dataField: 'nombre_operacion',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							maxLength: 150
+						},
+						label: {
+							text: 'Nombre'
+						},
+						isRequired: true
+					},
+					{//organismo financiero
+						colSpan: 6,
+						dataField: 'cod_organismo_financiero',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: organismos,
+							displayExpr: 'nombre_organismo_financiero',
+							valueExpr: 'cod_organismo_financiero'/*,
+							onValueChanged: (data) => {
+
+								$('#divEstructura').show()
+
+								if (data.value == 2) {
+									$('#divSubComponentes').hide()
+								} else {
+									$('#divSubComponentes').show()
+								}
+
+							}
+							*/
+						},
+						label: {
+							text: 'Organismo'
+						},
+						isRequired: true
+					},
+					{//estado
+						colSpan: 6,
+						dataField: 'estado_operacion',
+						editorType: 'dxCheckBox',
+						editorOptions: {
+							value: true
+						},
+						label: {
+							text: 'Activo',
+							location: 'left'
+						}
+					},
+					{//número de la operación
+						colSpan: 3,
+						dataField: 'nro_operacion',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							maxLength: 20
+						},
+						label: {
+							text: 'Número'
+						},
+						isRequired: true
+					},
+					{//monto
+						colSpan: 3,
+						dataField: 'monto_operacion',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							//value: '$' + operacion.monto_operacion.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+							onFocusIn: (e) => {
+								if (typeof e.component._options.value === 'string') {
+									$('#frmOperacion').dxForm('instance').getEditor('monto_operacion').option('value', e.component._options.value.substring(1, e.component._options.value.length).replace(/,/g, '') )
+								}
+							},
+							onFocusOut: (e) => {
+								if (typeof e.component._options.value === 'string' && e.component._options.value.length > 0) {
+									$('#frmOperacion').dxForm('instance').getEditor('monto_operacion').option('value', '$' + e.component._options.value.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') )
+								}
+							},
+							onKeyPress: (info) => {
+								let event = info.jQueryEvent
+								if (event.keyCode == 46 || (event.keyCode >= 48 && event.keyCode <= 57 ) ) {
+									event.stopPropagation()
+								} else {
+									event.preventDefault()
+								}
+							}
+						},
+						label: {
+							text: 'Monto'
+						},
+						isRequired: true
+					},
+					{//fecha de inicio
+						colSpan: 3,
+						dataField: 'fecha_inicio_operacion',
+						editorType: 'dxDateBox',
+						editorOptions: {
+							type: 'date',
+							pickerType: 'calendar',
+							displayFormat: 'dd/MM/yyyy'
+						},
+						label: {
+							text: 'Fecha Inicio'
+						},
+						isRequired: true
+					},
+					{//fecha fin
+						colSpan: 3,
+						dataField: 'fecha_fin_operacion',
+						editorType: 'dxDateBox',
+						editorOptions: {
+							type: 'date',
+							pickerType: 'calendar',
+							displayFormat: 'dd/MM/yyyy'
+						},
+						label: {
+							text: 'Fecha Fin'
+						},
+						isRequired: true
+					},
+					{//descripción
+						colSpan: 6,
+						dataField: 'desc_operacion',
+						editorType: 'dxTextArea',
+						editorOptions: {
+							autoResizeEnabled: true,
+							maxLength: 500
+						},
+						label: {
+							text: 'Descripción'
+						},
+					}
+					/*
+					{//componentes
+						codSpan: 2,
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Componentes',
+							type: 'default',
+							onClick: (e) => {
+
+							}
+						}
+					},
+					{//subcomponentes
+						codSpan: 2,
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Subcomponentes',
+							type: 'default',
+							onClick: (e) => {
+								
+							}
+						}
+					},
+					{//productos
+						codSpan: 2,
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Productos',
+							type: 'default',
+							onClick: (e) => {
+								
+							}
+						}
+					}
+					{//botón operación
+						codSpan: 2,
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Guardar Operación',
+							type: 'default',
+							onClick: (e) => {
+
+								let result = $('#frmOperacion').dxForm('instance').validate()
+								if (result.isValid) {
+									let data = $('#frmOperacion').dxForm('instance').option().formData
+
+									if (typeof data.monto_operacion === 'string') {
+										data.monto_operacion = data.monto_operacion.substring(1, data.monto_operacion.length).replace(/,/g, '')
+									}
+
+									$.ajax({
+										type: 'POST',
+										url: '/pym/administracion/guardarOperacion',
+										data: {
+											codigo : data.cod_operacion,
+											nombre : data.nombre_operacion,
+											organismo : data.cod_organismo_financiero,
+											estado : data.estado_operacion,
+											nro : data.nro_operacion,
+											monto : data.monto_operacion,
+											inicio : formatDate(data.fecha_inicio_operacion),
+											fin : formatDate(data.fecha_fin_operacion),
+											desc : data.desc_operacion
+										},
+										dataType: 'json',
+										encode: true,
+										beforeSend: () => {
+											$('.spinner').show()
+										}
+									})
+									.done( (response) => {
+
+										$('#frmOperacion').dxForm('instance').option().formData.cod_operacion = response.codigo
+										$('.spinner').hide()
+										DevExpress.ui.notify({
+											message: 'Operación guardada exitosamente.',
+											type: 'success',
+											displayTime: 3000,
+											position: {
+												my: 'center top',
+												at: 'center top'
+											}
+										})
+									})
+								}
+							}
+						}
+					}
+					*/
+				]
+			})
+
+			$('#btnGuardarOperacion').dxButton({
+				text: 'Guardar Operación',
+				type: 'default',
+				onClick: (info) => {
+
+					let result = $('#frmOperacion').dxForm('instance').validate()
+					if (result.isValid) {
+						
+						let data = $('#frmOperacion').dxForm('instance').option().formData
+
+						if (typeof data.monto_operacion === 'string') {
+							data.monto_operacion = data.monto_operacion.substring(1, data.monto_operacion.length).replace(/,/g, '')
+						}
+
+						//$('#dgdComponentes').dxDataGrid('instance').saveEditData()
+						
+						$.ajax({
+							type: 'POST',
+							url: '/pym/administracion/guardarOperacion',
+							data: {
+								codigo : data.cod_operacion,
+								nombre : data.nombre_operacion,
+								organismo : data.cod_organismo_financiero,
+								estado : data.estado_operacion,
+								nro : data.nro_operacion,
+								monto : data.monto_operacion,
+								inicio : formatDate(data.fecha_inicio_operacion),
+								fin : formatDate(data.fecha_fin_operacion),
+								desc : data.desc_operacion
+							},
+							dataType: 'json',
+							encode: true,
+							beforeSend: () => {
+								$('.spinner').show()
+							}
+						})
+						.done( (response) => {
+
+							$('#frmOperacion').dxForm('instance').option().formData.cod_operacion = response.codigo
+							$('#divEstructura').show()
+
+							if ($('#frmOperacion').dxForm('instance').option().formData.cod_organismo_financiero == 2) {
+								$('#divSubComponentes').hide()
+							} else {
+								$('#divSubComponentes').show()
+							}
+
+							$('.spinner').hide()
+							DevExpress.ui.notify({
+								message: 'Operación guardada exitosamente.',
+								type: 'success',
+								displayTime: 3000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						})
+					}
+				}
+			})
+
+			$('#btnComponentes').dxButton({
+				text: 'Componentes',
+				type: 'default',
+				onClick: (e) => {
+
+					$.ajax({
+						type: 'POST',
+						url: '/pym/administracion/pv_dgdComponentes',
+						data: {
+							cod_operacion : $('#frmOperacion').dxForm('instance').option().formData.cod_operacion
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+				}
+			})
+
+			$('#btnSubcomponentes').dxButton({
+				text: 'Subcomponentes',
+				type: 'default',
+				onClick: (e) => {
+
+					$.ajax({
+						type: 'POST',
+						url: '/pym/administracion/pv_dgdSubcomponentes',
+						data: {
+							cod_operacion : $('#frmOperacion').dxForm('instance').option().formData.cod_operacion
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+					
+				}
+			})
+
+			$('#btnIndcProd').dxButton({
+				text: 'Productos',
+				type: 'default',
+				onClick: (e) => {
+					
+					$.ajax({
+						type: 'POST',
+						url: '/pym/administracion/pv_dgdIndcProd',
+						data: {
+							cod_operacion : $('#frmOperacion').dxForm('instance').option().formData.cod_operacion
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+
+				}
+			})
+			
+
+			if (operacion.monto_operacion) {
+				$('#frmOperacion').dxForm('instance').getEditor('monto_operacion').option('value', '$' + operacion.monto_operacion.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') )
+			}
+
+			if (operacion.cod_operacion > 0) {
+				$('#divEstructura').show()
+
+				if (operacion.cod_organismo_financiero == 2) {
+					$('#divSubComponentes').hide()
+					$('#btnIndcProd').dxButton('instance').option('text', 'Indicadores')
+				} else {
+					$('#divSubComponentes').show()
+					$('#btnIndcProd').dxButton('instance').option('text', 'Productos')
+				}
+			}
+
+		}

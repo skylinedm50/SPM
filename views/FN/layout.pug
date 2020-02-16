@@ -1,0 +1,86 @@
+doctype html
+html
+	head
+		meta(charset="utf-8")
+		meta(name="viewport", content="width=device-width,initial-scale=1.0, maximum-scale=1.0")
+		title= title
+		- var content = description
+		meta(name="description", content=content)
+		link(href='/css/font-awesome.min.css', rel='stylesheet')
+		link(href='/css/main.css', rel='stylesheet')
+		script(src='/js/jquery.min.js')
+		script(src='/js/skel.min.js')
+		script(src='/js/util.js')
+		script(src='/js/main.js')
+
+		script(src='/js/jquery-3.1.0.min.js')
+		link(rel='stylesheet', type="text/css", href='/css/dx.common.css')
+		link(rel='dx-theme', data-theme='generic.light', href='/css/dx.light.css')
+		script(src='/js/cldr.min.js')
+		script(src='/js/cldr/event.min.js')
+		script(src='/js/cldr/supplemental.min.js')
+		script(src='/js/cldr/unresolved.min.js')
+		script(src='/js/globalize.min.js')
+		script(src='/js/globalize/message.min.js')
+		script(src='/js/globalize/number.min.js')
+		script(src='/js/globalize/currency.min.js')
+		script(src='/js/globalize/date.min.js')
+		script(src='/js/jszip.min.js')
+		script(src='/js/dx.all.js')
+		script(src='/js/localization/dx.messages.es.js')
+
+		block head
+		
+	body
+		header#header
+			a.logo
+				strong NOG |
+				|  MÓDULO DE FONDOS NACIONALES
+			ul.icons
+				li
+					a.icon.fa.fa-user
+						span= username
+				li
+					input(id="btnCerrarSesion", type="button", value='Cerrar Sesión')
+		#wrapper
+			#main
+				.inner
+					section.dx-viewport
+						block content
+			#sidebar
+				.inner
+					include ../menu.pug
+							
+		block scripts
+		script.
+			$.when(
+				$.getJSON('/js/cldr/main/es-HN/ca-gregorian.json'),
+				$.getJSON('/js/cldr/main/es-HN/numbers.json'),
+				$.getJSON('/js/cldr/main/es-HN/currencies.json'),
+				$.getJSON('/js/cldr/supplemental/likelySubtags.json'),
+				$.getJSON('/js/cldr/supplemental/timeData.json'),
+				$.getJSON('/js/cldr/supplemental/weekData.json'),
+				$.getJSON('/js/cldr/supplemental/currencyData.json'),
+				$.getJSON('/js/cldr/supplemental/numberingSystems.json')
+			).then(function() {
+				//The following code converts the got results into an array
+				return [].slice.apply( arguments, [0] ).map(function( result ) {
+					return result[ 0 ];
+				});
+			}).then(
+				Globalize.load //loads data held in each array item to Globalize
+			).then(function() {
+				DevExpress.localization.locale('es')
+				Globalize.locale('es-HN')
+
+				try {
+					load()
+				} catch (err) {					
+					console.log(err)
+					console.log('No existe la función load.')
+				}
+			})
+
+			$("#btnCerrarSesion").click( () => {
+				location.href = "/loguot"
+			})

@@ -1,0 +1,142 @@
+header.major
+	h3 Productos
+#btnNuevoIndcProd.margin-bottom
+#dgdIndcProd.margin-bottom
+#btnGuardarIndcProd.margin-bottom
+
+script.
+	var productos = !{JSON.stringify(productos)},
+		componentesSub = !{JSON.stringify(componentesSub)}
+	
+	$( () => {
+
+		$('#btnNuevoIndcProd').dxButton({
+			text: 'Nuevo Indicador / Producto',
+			type: 'default',
+			onClick: (info) => {
+				$('#dgdIndcProd').dxDataGrid('instance').addRow()
+			}
+		})
+
+		$('#dgdIndcProd').dxDataGrid({
+			dataSource: productos,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			allowColumnReordering: true,
+			allowColumnResizing: true,
+			columnAutoWidth: true,
+			columnFixing: { 
+				enabled: true
+			},
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			columnHidingEnabled: true,
+			editing: {
+				mode: 'cell',
+				allowUpdating: true
+			},
+			wordWrapEnabled: true,
+			columns: [
+				{
+					dataField: 'cod_ind_prod',
+					visible: false
+				},
+				{
+					dataField: 'cod_comp_sub',
+					caption: 'No. Componente / Subcomponente',
+					lookup : {
+						dataSource: componentesSub,
+						displayExpr: 'nro',
+						valueExpr: 'codigo'
+					},
+					validationRules: [{ type: 'required' }]
+				},
+				{
+					dataField: 'nombre_ind_prod',
+					caption: 'Indicador / Producto',
+					validationRules: [
+						{ type: 'required' },
+						{ type: 'stringLength', max: 255}
+					]
+				},
+				{
+					dataField: 'descripcion_ind_prod',
+					caption: 'Descripción',
+					validationRules: [
+						{ type: 'stringLength', max: 255}
+					]
+				}
+			]
+		})
+
+		$('#btnGuardarIndcProd').dxButton({
+			text: 'Guardar Indicadores / Productos',
+			type: 'default',
+			onClick: (info) => {
+
+				$('#dgdIndcProd').dxDataGrid('instance').saveEditData().then( () => {
+
+					let data = {
+						indc_prod: $('#dgdIndcProd').dxDataGrid('instance').getDataSource().store()._array
+					}
+					
+					$.ajax({
+						type: 'POST',
+						url: '/pym/administracion/guardarIndcProd',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						dataType: 'json',
+						encode: true,
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+
+						let flag = false
+						
+						for (let i = 0, len = response.length; i < len; i++) {
+							if (response[i] == 0)
+								flag = true
+						}
+
+						jQuery('body').css('overflow', 'visible')
+						$("#myModal").css("display", "none")
+						$('.spinner').hide()
+
+						if (flag) {
+							DevExpress.ui.notify({
+								message: 'Ocurrio un error al intentar guardar uno o más indicadores/productos.',
+								type: 'error',
+								displayTime: 5000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						} else {
+							DevExpress.ui.notify({
+								message: 'Indicadores/Productos guardados exitosamente.',
+								type: 'success',
+								displayTime: 3000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						}
+					})
+				})
+
+			}
+		})
+
+	})

@@ -1,0 +1,1054 @@
+extends ../layout.pug
+
+block head
+	style.
+
+		#chrOperaciones {
+			display: none;
+		}
+		
+		.margin-bottom {
+			margin-bottom: 30px;
+		}
+
+		.col-50 {
+			display: inline-block;
+			width: 50%;
+		}
+
+		.currency {
+			text-align: center;
+		}
+
+		@media only screen and (max-width:1000px) {
+
+			.col-50 {
+				display: block;
+				width: 100%;
+				margin: 0 auto;
+			}
+		}
+
+block content
+	header.major
+		h2 Comparativo de lo ejecutado
+	#frmFiltros.margin-bottom
+	header.major
+		h3#tituloResumen
+	#btnExportarResumen.margin-bottom
+	#dgdResumenPrograma.margin-bottom
+	#chrResumenPrograma
+
+block scripts
+	script.
+
+		var organismos = !{JSON.stringify(organismos)},
+			operaciones = !{JSON.stringify(operaciones)},
+			dependencias = !{JSON.stringify(dependencias)},
+			datosOperaciones = !{JSON.stringify(datosOperaciones)},
+			año = !{JSON.stringify(año)},
+
+			mes = ( (new Date().getMonth() == 0) ? 12 : new Date().getMonth() + 1 ),
+			resumenAño = ( (new Date().getMonth() == 0) ? new Date().getFullYear() - 1 : new Date().getFullYear() ),
+			añoDatos = [
+				{
+					año_actividad: 0,
+					monto_programado: 0,
+					monto_ejecutado: 0,
+					porc_ejecucion: 0
+				}
+			],
+			totalMensual = [
+				{mes: 'ENERO', anterior: 0},
+				{mes: 'FEBRERO', anterior: 0},
+				{mes: 'MARZO', anterior: 0},
+				{mes: 'ABRIL', anterior: 0},
+				{mes: 'MAYO', anterior: 0},
+				{mes: 'JUNIO', anterior: 0},
+				{mes: 'JULIO', anterior: 0},
+				{mes: 'AGOSTO', anterior: 0},
+				{mes: 'SEPTIEMBRE', anterior: 0},
+				{mes: 'OCTUBRE', anterior: 0},
+				{mes: 'NOVIEMBRE', anterior: 0},
+				{mes: 'DICIEMBRE', anterior: 0}
+			],
+			sideBarFlag = true,
+			showChartFlag = false
+
+		for(x = 0; x < mes; x++){
+			totalMensual[x].actual = 0;
+		}	
+
+
+		for(i = 0 ; i < datosOperaciones.length; i++){
+			if(año == datosOperaciones[i].año_actividad){
+				totalMensual[0].actual += datosOperaciones[i].ejec_01
+				totalMensual[1].actual += datosOperaciones[i].ejec_02
+				totalMensual[2].actual += datosOperaciones[i].ejec_03
+				totalMensual[3].actual += datosOperaciones[i].ejec_04
+				totalMensual[4].actual += datosOperaciones[i].ejec_05
+				totalMensual[5].actual += datosOperaciones[i].ejec_06
+				totalMensual[6].actual += datosOperaciones[i].ejec_07
+				totalMensual[7].actual += datosOperaciones[i].ejec_08
+				totalMensual[8].actual += datosOperaciones[i].ejec_09
+				totalMensual[9].actual += datosOperaciones[i].ejec_10
+				totalMensual[10].actual += datosOperaciones[i].ejec_11
+				totalMensual[11].actual += datosOperaciones[i].ejec_12
+
+				let j = 1
+				while (j <= mes) {
+					if (j < 10) {
+						totalMensual[j - 1].actual += datosOperaciones[i]['ejec_0' + j]
+					} else {
+						totalMensual[j - 1].actual += datosOperaciones[i]['ejec_' + j]
+					}
+					j++
+				}	
+							
+			}else{
+				
+				totalMensual[0].anterior += datosOperaciones[i].ejec_01
+				totalMensual[1].anterior += datosOperaciones[i].ejec_02
+				totalMensual[2].anterior += datosOperaciones[i].ejec_03
+				totalMensual[3].anterior += datosOperaciones[i].ejec_04
+				totalMensual[4].anterior += datosOperaciones[i].ejec_05
+				totalMensual[5].anterior += datosOperaciones[i].ejec_06
+				totalMensual[6].anterior += datosOperaciones[i].ejec_07
+				totalMensual[7].anterior += datosOperaciones[i].ejec_08
+				totalMensual[8].anterior += datosOperaciones[i].ejec_09
+				totalMensual[9].anterior += datosOperaciones[i].ejec_10
+				totalMensual[10].anterior += datosOperaciones[i].ejec_11
+				totalMensual[11].anterior += datosOperaciones[i].ejec_12
+
+			}
+		}
+		
+		function obtenerDatos() {
+			let data = $('#frmFiltros').dxForm('instance').option().formData			
+			$.ajax({
+				type: 'POST',
+				url: '/pym/reportes/json_ComparativoEjecutado',
+				data: data,
+				dataType: 'json',
+				encode: true,
+				beforeSend: () => {
+					$('.spinner').show()
+				}
+			})
+			.done( (response) => {
+
+				let filtros = $('#frmFiltros').dxForm('instance').option().formData,
+					dataGrid = $('#dgdResumenPrograma').dxDataGrid('instance'),
+					chart = $('#chrResumenPrograma').dxChart('instance'),
+					totalMensual = [
+										{mes: 'ENERO', anterior: 0},
+										{mes: 'FEBRERO', anterior: 0},
+										{mes: 'MARZO', anterior: 0},
+										{mes: 'ABRIL', anterior: 0},
+										{mes: 'MAYO', anterior: 0},
+										{mes: 'JUNIO', anterior: 0},
+										{mes: 'JULIO', anterior: 0},
+										{mes: 'AGOSTO', anterior: 0},
+										{mes: 'SEPTIEMBRE', anterior: 0},
+										{mes: 'OCTUBRE', anterior: 0},
+										{mes: 'NOVIEMBRE', anterior: 0},
+										{mes: 'DICIEMBRE', anterior: 0}
+									]
+
+					for(x = 0; x < mes; x++){
+						totalMensual[x].actual = 0;
+					}	
+
+
+					for(i = 0 ; i < response.length; i++){
+							if(año == response[i].año_actividad){
+								totalMensual[0].actual += response[i].ejec_01
+								totalMensual[1].actual += response[i].ejec_02
+								totalMensual[2].actual += response[i].ejec_03
+								totalMensual[3].actual += response[i].ejec_04
+								totalMensual[4].actual += response[i].ejec_05
+								totalMensual[5].actual += response[i].ejec_06
+								totalMensual[6].actual += response[i].ejec_07
+								totalMensual[7].actual += response[i].ejec_08
+								totalMensual[8].actual += response[i].ejec_09
+								totalMensual[9].actual += response[i].ejec_10
+								totalMensual[10].actual += response[i].ejec_11
+								totalMensual[11].actual += response[i].ejec_12
+
+								let j = 1
+								while (j <= mes) {
+									if (j < 10) {
+										totalMensual[j - 1].actual += response[i]['ejec_0' + j]
+									} else {
+										totalMensual[j - 1].actual += response[i]['ejec_' + j]
+									}
+									j++
+								}	
+											
+							}else{
+								
+								totalMensual[0].anterior += response[i].ejec_01
+								totalMensual[1].anterior += response[i].ejec_02
+								totalMensual[2].anterior += response[i].ejec_03
+								totalMensual[3].anterior += response[i].ejec_04
+								totalMensual[4].anterior += response[i].ejec_05
+								totalMensual[5].anterior += response[i].ejec_06
+								totalMensual[6].anterior += response[i].ejec_07
+								totalMensual[7].anterior += response[i].ejec_08
+								totalMensual[8].anterior += response[i].ejec_09
+								totalMensual[9].anterior += response[i].ejec_10
+								totalMensual[10].anterior += response[i].ejec_11
+								totalMensual[11].anterior += response[i].ejec_12
+
+							}
+					}
+
+
+
+				if (filtros.nombre_direccion) {
+
+					$('#tituloResumen').text('Comparativo de ejecución ' + filtros.nombre_direccion + ' '+ (año - 1)+ ' y ' + año)
+					chart.option('Comparativo de ejecución ' + filtros.nombre_direccion + ' '+ (año - 1)+ ' y ' + año)
+
+				} else {
+
+					$('#tituloResumen').text('Comparativo de ejecución ' + (año - 1)+' y '+año)
+					chart.option('title', 'Comparativo de ejecución ' + (año - 1)+' y '+año)
+
+				}
+
+
+				dataGrid.option('dataSource', response)
+				chart.option('dataSource', totalMensual)
+				chart.render()
+
+				$('.spinner').hide()
+			})
+		}
+
+		function load() {
+
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					$('#pvtOperaciones').dxPivotGrid('instance').option('width', $('#pvtOperaciones').dxPivotGrid('instance').option('width') + $('#sidebar').width())
+					sideBarFlag = false
+				} else {
+					$('#pvtOperaciones').dxPivotGrid('instance').option('width', $('#pvtOperaciones').dxPivotGrid('instance').option('width') - $('#sidebar').width())
+					sideBarFlag = true
+				}
+			})
+
+			$('#tituloResumen').text('Comparativo de ejecutado '+(año-1)+' y ' + año)
+
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				colCount: 2,
+				items: [
+					{
+						dataField: 'cod_organismo_financiero',
+						label: {
+							text: 'Organismo'
+						},
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: organismos,
+							displayExpr: 'abrev_organismo_financiero',
+							valueExpr: 'cod_organismo_financiero',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						}
+					},
+					{
+						dataField: 'cod_operacion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: operaciones,
+							displayExpr: 'nro_operacion',
+							valueExpr: 'cod_operacion',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						},
+						label: {
+							text: 'Operación'
+						}
+					},
+					{
+						dataField: 'nombre_direccion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: dependencias,
+							displayExpr: 'nombre_direccion',
+							valueExpr: 'nombre_direccion',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						},
+						label: {
+							text: 'Dependencia'
+						}
+					}
+				]
+			})
+
+			$('#btnExportarResumen').dxButton({
+				text: 'Exportar a Excel',
+				type: 'default',
+				onClick: (e) => {
+					$('#dgdResumenPrograma').dxDataGrid('instance').exportToExcel()
+				}
+			})
+
+			$('#dgdResumenPrograma').dxDataGrid({
+				dataSource: datosOperaciones,
+				paging: {
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				columnAutoWidth: true,
+				columnFixing: { 
+					enabled: true
+				},
+				showColumnLines: true,
+				showRowLines: true,
+				rowAlternationEnabled: true,
+				showBorders: true,
+				width: $('section').width(),
+				wordWrapEnabled: true,
+				'export': {
+					enabled: false,
+					fileName: 'COMPARATIVO_EJECUTADO_'+(año-1)+'_y_'+año 
+				},
+				columnFixing: { 
+					enabled: true
+				},
+				scrolling: {
+					useNative: true
+				},
+				columns: [
+					{//operaciones
+						dataField: 'año_actividad',
+						caption: 'Ejecución',
+						fixed: true
+					},
+					{//operaciones
+						dataField: 'ejecutado',
+						caption: 'Total',
+						fixed: true ,
+						calculateDisplayValue: (data) => {
+									if (data.ejecutado) {
+										return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+									}
+								}
+					},
+					{//enero
+						caption: 'Enero',
+						columns: [
+							{
+								caption: 'Ejecutado',
+								dataField: 'ejec_01',
+								calculateDisplayValue: (data) => {
+									if (data.ejec_01) {
+										return '$' + data.ejec_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+									}
+								}
+							}
+						]
+					},
+					{//febrero
+						caption: 'Febrero',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_02',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_02) {
+									return '$' + data.ejec_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//marzo
+						caption: 'Marzo',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_03',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_03) {
+									return '$' + data.ejec_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//abril
+						caption: 'Abril',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_04',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_04) {
+									return '$' + data.ejec_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//mayo
+						caption: 'Mayo',
+						columns:[ 
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_05',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_05) {
+									return '$' + data.ejec_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//junio
+						caption: 'Junio',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_06',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_06) {
+									return '$' + data.ejec_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//julio
+						caption: 'Julio',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_07',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_07) {
+									return '$' + data.ejec_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//agosto
+						caption: 'Agosto',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_08',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_08) {
+									return '$' + data.ejec_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//septiembre
+						caption: 'Septiembre',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_09',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_09) {
+									return '$' + data.ejec_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//octubre
+						caption: 'Octubre',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_10',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_10) {
+									return '$' + data.ejec_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//noviembre
+						caption: 'Noviembre',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_11',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_11) {
+									return '$' + data.ejec_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					},
+					{//diciembre
+						caption: 'Diciembre',
+						columns: [
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_12',
+							calculateDisplayValue: (data) => {
+								if (data.ejec_12) {
+									return '$' + data.ejec_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+								}
+							}
+						}]
+					}
+				],
+				summary: {
+					totalItems: [
+						{
+							column: 'año_actividad',
+							summaryType: 'min',
+							customizeText: (data) => {
+								return 'TOTAL'
+							}
+						},
+						{
+							column: 'ejecutado',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_01',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_02',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_03',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_04',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_05',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_06',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_07',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_08',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_09',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_10',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_11',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejec_12',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				//customizeExportData: (columns. rows) => {},
+				onExporting: (grid) => {
+
+					let summary = grid.component.option("summary")
+
+					grid.component.beginUpdate()
+					grid.component.option({
+						columns: [
+							{//operaciones
+								dataField: 'año_actividad',
+								caption: 'Ejecución'
+							},
+							{//monto programado total
+								caption: 'Totales',
+								columns: [
+									{
+										dataField: 'ejecutado',
+										caption: 'Ejecutado',
+										calculateDisplayValue: (data) => {									
+											return data.ejecutado
+										}
+									}
+								]
+							},
+							{//enero
+								caption: 'Enero',
+								columns: [
+									{
+										caption: 'Ejecutado',
+										dataField: 'ejec_01',
+										calculateDisplayValue: (data) => {
+											if (data.ejec_01) {
+												return data.ejec_01
+											}
+										}
+									}
+								]
+							},
+							{//febrero
+								caption: 'Febrero',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_02',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_02) {
+											return data.ejec_02
+										}
+									}
+								}]
+							},
+							{//marzo
+								caption: 'Marzo',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_03',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_03) {
+											return data.ejec_03
+										}
+									}
+								}]
+							},
+							{//abril
+								caption: 'Abril',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_04',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_04) {
+											return data.ejec_04
+										}
+									}
+								}]
+							},
+							{//mayo
+								caption: 'Mayo',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_05',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_05) {
+											return data.ejec_05
+										}
+									}
+								}]
+							},
+							{//junio
+								caption: 'Junio',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_06',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_06) {
+											return data.ejec_06
+										}
+									}
+								}]
+							},
+							{//julio
+								caption: 'Julio',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_07',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_07) {
+											return data.ejec_07
+										}
+									}
+								}]
+							},
+							{//agosto
+								caption: 'Agosto',
+								columns:[ 
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_08',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_08) {
+											return data.ejec_08
+										}
+									}
+								}]
+							},
+							{//septiembre
+								caption: 'Septiembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_09',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_09) {
+											return data.ejec_09
+										}
+									}
+								}]
+							},
+							{//octubre
+								caption: 'Octubre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_10',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_10) {
+											return data.ejec_10
+										}
+									}
+								}]
+							},
+							{//noviembre
+								caption: 'Noviembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_11',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_11) {
+											return data.ejec_11
+										}
+									}
+								}]
+							},
+							{//diciembre
+								caption: 'Diciembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_12',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_12) {
+											return data.ejec_12
+										}
+									}
+								}]
+							}
+						]
+					})
+
+					for (let i = 1; i <= 13; i++) {
+						summary.totalItems[i].customizeText = (data) => {
+							return data.value
+						}						
+					}
+
+				},
+				onExported: (grid) => {
+
+					let summary = grid.component.option("summary")
+
+					grid.component.option({
+						columns: [
+							{//operaciones
+								dataField: 'año_actividad',
+								caption: 'Ejecución',
+								fixed: true
+							},
+							{//monto programado total
+								caption: 'Totales',
+								fixed: true,
+								columns: [
+									{
+										dataField: 'ejecutado',
+										caption: 'Ejecutado',
+										calculateDisplayValue: (data) => {									
+											return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								]
+							},
+							{//enero
+								caption: 'Enero',
+								columns: [
+									{
+										caption: 'Ejecutado',
+										dataField: 'ejec_01',
+										calculateDisplayValue: (data) => {
+											if (data.ejec_01) {
+												return '$' + data.ejec_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+											}
+										}
+									}
+								]
+							},
+							{//febrero
+								caption: 'Febrero',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_02',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_02) {
+											return '$' + data.ejec_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//marzo
+								caption: 'Marzo',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_03',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_03) {
+											return '$' + data.ejec_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//abril
+								caption: 'Abril',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_04',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_04) {
+											return '$' + data.ejec_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//mayo
+								caption: 'Mayo',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_05',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_05) {
+											return '$' + data.ejec_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//junio
+								caption: 'Junio',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_06',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_06) {
+											return '$' + data.ejec_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//julio
+								caption: 'Julio',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_07',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_07) {
+											return '$' + data.ejec_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//agosto
+								caption: 'Agosto',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_08',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_08) {
+											return '$' + data.ejec_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//septiembre
+								caption: 'Septiembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_09',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_09) {
+											return '$' + data.ejec_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//octubre
+								caption: 'Octubre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_10',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_10) {
+											return '$' + data.ejec_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//noviembre
+								caption: 'Noviembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_11',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_11) {
+											return '$' + data.ejec_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							},
+							{//diciembre
+								caption: 'Diciembre',
+								columns: [
+								{
+									caption: 'Ejecutado',
+									dataField: 'ejec_12',
+									calculateDisplayValue: (data) => {
+										if (data.ejec_12) {
+											return '$' + data.ejec_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									}
+								}]
+							}
+						]
+					})
+
+					for (let i = 1; i <= 13; i++) {
+						summary.totalItems[i].customizeText = (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					}
+
+					grid.component.endUpdate()
+
+				}
+			})
+
+			$('#chrResumenPrograma').dxChart({
+				dataSource: totalMensual,
+				commonSeriesSettings: {
+					argumentField: 'mes',
+					type: 'line',
+					hoverMode: 'allArgumentPoints',
+					selectionMode: 'allArgumentPoints',
+					label: {
+						visible: false,
+					}
+				},
+				title: 'Comparativo de ejecución '+(año-1)+' y ' + año,
+				legend: {
+					verticalAlignment: 'bottom',
+					horizontalAlignment: 'center'
+				},
+				series: [
+					{
+						type: 'line',
+						valueField: 'actual',
+						name: 'Año '+año
+					},
+					{
+						type: 'line',
+						valueField: 'anterior',
+						name: 'Año '+(año-1),
+					}
+				],
+				tooltip: {
+					enabled: true,
+					customizeTooltip: (args) => {
+
+						let valueText = '$' + args.originalValue.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+						html
+
+						for (let i = 0, len = totalMensual.length; i < len; i++) {
+							if (totalMensual[i].mes === args.argument) {
+
+								html = `<div class="currency">${args.argument} | ${args.seriesName}</div><div class="currency">${valueText}	</div>`
+
+								break
+							}
+						}
+
+						return {
+							html: html
+						}
+					}
+				},
+				valueAxis: {
+					visible: true,
+					autoBreaksEnabled: true,
+					maxAutoBreakCount: 3
+				}
+			})
+
+		}

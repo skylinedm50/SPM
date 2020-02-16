@@ -1,0 +1,279 @@
+.dx-fieldset
+	.dx-fieldset-header Detalle de Dirección
+	.dx-field
+		.dx-field-label Dirección
+		.dx-field-value
+			#slcDirecciones
+	.dx-field
+		.dx-field-label Año
+		.dx-field-value
+			#slcAnos
+	.dx-field
+		.dx-field-label Mes
+		.dx-field-value
+			#slcMeses
+#dgddetalleDireccion.margin-bottom
+#chtdetalleDireccion
+
+script.
+	
+	var direcciones = !{JSON.stringify(direcciones)},
+		años = [2017, 2018, 2019, 2020],
+		meses = [
+			{cod_mes: 1, desc_mes: 'ENERO'},
+			{cod_mes: 2, desc_mes: 'FEBRERO'},
+			{cod_mes: 3, desc_mes: 'MARZO'},
+			{cod_mes: 4, desc_mes: 'ABRIL'},
+			{cod_mes: 5, desc_mes: 'MAYO'},
+			{cod_mes: 6, desc_mes: 'JUNIO'},
+			{cod_mes: 7, desc_mes: 'JULIO'},
+			{cod_mes: 8, desc_mes: 'AGOSTO'},
+			{cod_mes: 9, desc_mes: 'SEPTIEMBRE'},
+			{cod_mes: 10, desc_mes: 'OCTUBRE'},
+			{cod_mes: 11, desc_mes: 'NOVIEMBRE'},
+			{cod_mes: 12, desc_mes: 'DICIEMBRE'},
+		]
+	
+	function obtenerDetalleDireccion(direccion, año, mes) {
+
+		$.ajax({
+			type: 'POST',
+			url: '/pym/reportes/mDetalleDireccion',
+			data: {
+				direccion: direccion,
+				año: año,
+				mes: mes
+			},
+			dataType: 'json',
+			encode: true,
+			beforeSend: () => {
+				$('.spinner').show()
+			}
+		})
+		.done( (response) => {
+
+			let totalProg = 0
+				totalEjec = 0
+
+			for (let i = 0, len = response.length; i < len; i++) {
+				totalProg += response[i].programado
+				totalEjec += response[i].ejecutado
+			}
+
+			$('#dgddetalleDireccion').dxDataGrid({
+				dataSource: response,
+				paging: {
+					pageSize: 10
+				},
+				/*
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				*/
+				columnAutoWidth: true,
+				showColumnLines: false,
+				showRowLines: true,
+				rowAlternationEnabled: true,
+				showBorders: false,
+				columnHidingEnabled: true,
+				wordWrapEnabled: true,
+				/*
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				width: $('section').width(),
+				'export': {
+					enabled: true,
+					fileName: 'POA_PEP_' + $('#frmFiltros').dxForm('instance').getEditor('cod_operacion').option('text') + '_AÑO_' + $('#frmFiltros').dxForm('instance').getEditor('año_actividad').option('text')
+				},
+				columnFixing: { 
+					enabled: true
+				},
+				scrolling: {
+					useNative: true
+				},
+				*/
+				columns: [
+					{
+						dataField: 'nombre_actividad',
+						caption: 'Actividad'
+					},
+					{
+						dataField: 'programado',
+						caption: 'Programado',
+						calculateDisplayValue: (data) => {
+							return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						dataField: 'ejecutado',
+						caption: 'Ejecutado',
+						calculateDisplayValue: (data) => {
+							return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						dataField: 'porcentaje',
+						caption: '% Ejecución',
+						calculateDisplayValue: (data) => {
+							if (data.programado > 0) {
+								return ((data.ejecutado * 100) / data.programado ).toFixed(2) + '%'
+							} else {
+								return '0%'
+							}
+						}
+					}
+				],
+				summary: {
+					totalItems: [
+						{
+							column: 'nombre_actividad',
+							summaryType: 'min',
+							customizeText: (data) => {
+								return 'TOTAL'
+							}
+						},
+						{
+							column: 'programado',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'ejecutado',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'porcentaje',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return ( (totalEjec * 100) / totalProg ).toFixed(2) + '%'
+							}
+						}
+					]
+				}
+			})
+			
+			$('#chtdetalleDireccion').dxChart({
+				dataSource: response,
+				commonSeriesSettings: {
+					argumentField: 'nombre_actividad',
+					type: 'bar',
+					hoverMode: 'allArgumentPoints',
+					selectionMode: 'allArgumentPoints',
+					label: {
+						visible: false,
+						format: {
+							type: 'fixedPoint',
+							precision: 0
+						},
+						customizeText: (pointinfo) => {
+							return '$' + pointinfo.valueText
+						}
+					}
+				},
+				series: [
+					{ valueField: 'programado', name: 'Programado' },
+					{
+						type: 'line',
+						valueField: 'ejecutado',
+						name: 'Ejecutado',
+					}
+				],
+				legend: {
+					verticalAlignment: 'bottom',
+					horizontalAlignment: 'center'
+				},
+				argumentAxis: {
+					label: {
+						visible: false
+					}
+				},
+				tooltip: {
+					enabled: true,
+					customizeTooltip: (args) => {
+
+						let valueText = '$' + args.originalValue.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+							porcentaje,
+							html
+						
+						for (let i = 0, len = response.length; i < len; i++) {
+							if (response[i].indicador_avance_actividad === args.argument) {
+
+								let porcentaje = ( (response[i].ejecutado * 100) / response[i].programado )
+
+								html = `<div class="centrar">${args.argument} | ${args.seriesName}</div><div class="centrar">${valueText}</div><div class="centrar">% de ejecución: ${porcentaje.toFixed(2)}%</div>`
+
+								break
+							}
+						}
+
+						return {
+							html: html
+						}
+					}
+				}
+			})
+
+			$('.spinner').hide()
+
+
+
+		})
+	}
+
+	$( () => {
+
+		$('#slcDirecciones').dxSelectBox({
+			dataSource: direcciones,
+			placeholder: 'Seleccione un direccion',
+			displayExpr: 'nombre_direccion',
+			valueExpr: 'cod_direccion',
+			onValueChanged: (data) => {
+
+				let año = $("#slcAnos").dxSelectBox("instance").option('value'),
+					mes = $("#slcMeses").dxSelectBox("instance").option('value')
+				
+				if (año != null && mes != null)
+					obtenerDetalleDireccion(data.value, año, mes)
+
+			}
+		})
+
+		$('#slcAnos').dxSelectBox({
+			items: años,
+			placeholder: 'Seleccione un año',
+			onValueChanged: (data) => {
+
+				let direccion = $("#slcDirecciones").dxSelectBox("instance").option('value'),
+					mes = $("#slcMeses").dxSelectBox("instance").option('value')
+				
+				if (direccion != null && mes != null)
+					obtenerDetalleDireccion(direccion, data.value, mes)
+
+			}
+		})
+
+		$('#slcMeses').dxSelectBox({
+			dataSource: meses,
+			placeholder: 'Seleccione un mes',
+			displayExpr: 'desc_mes',
+			valueExpr: 'cod_mes',
+			onValueChanged: (data) => {
+
+				let direccion = $("#slcDirecciones").dxSelectBox("instance").option('value'),
+					año = $("#slcAnos").dxSelectBox("instance").option('value')
+				
+				if (direccion != null && año != null)
+					obtenerDetalleDireccion(direccion, año, data.value)
+
+			}
+		})
+
+		
+	})

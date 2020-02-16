@@ -1,0 +1,967 @@
+header.major
+	h3 Actividades
+#btnNuevaActividad.margin-bottom
+
+#dgdActividades.margin-bottom
+#dvFocusable(tabindex="0")
+#btnGuardarActividades
+
+script.
+
+	var actividades = !{JSON.stringify(actividades)},
+		componentes = !{JSON.stringify(componentes)},
+		subcomponentes = !{JSON.stringify(subcomponentes)},
+		indic_prod = !{JSON.stringify(indic_prod)},
+		flagBID,
+		cambioCorrelativo = {
+			incremento: null,
+			valor: null,
+			flag: false
+		},
+		grid
+		
+	function ordenarActividadesBID(array) {
+		let globalArray = new Array()
+
+		//- Agrega todos los nro_actividadd a global array separados en arreglos y convierte de string a numero
+		for (let i = 0; i < array.length; i++) {
+			globalArray.push(array[i].nro_actividad.split('.'))
+			for (let j = 0; j < globalArray[i].length; j++) {
+				globalArray[i][j] = Number(globalArray[i][j])
+			}
+		}
+
+		for (let i = 1; i < globalArray.length; i++) {
+
+			for (let j = 0, len2 = globalArray.length - i; j < len2; j++) {
+
+				let flag
+
+				for (let k = 0, len3 = globalArray[j + 1].length; k < len3; k++) {
+					if (globalArray[j][k] > globalArray[j + 1][k] && globalArray[j].slice(0,k).join('.') == globalArray[j + 1].slice(0,k).join('.')) {
+						flag = true
+						break
+					}
+				}
+
+				if (flag) {
+					let aux = globalArray[j]
+					globalArray[j] = globalArray[j + 1]
+					globalArray[j + 1] = aux
+				}
+			}
+		}
+
+		for (let i = 0, len = globalArray.length; i < len; i++) {
+			globalArray[i] = [i + 1, globalArray[i].join('.')]
+		}
+
+		return globalArray
+	}
+	
+	for (let i = 0, len = actividades.length; i < len; i++) {
+		actividades[i].fecha_inicio_actividad = addDays(new Date(actividades[i].fecha_inicio_actividad), 1)
+		actividades[i].fecha_fin_actividad = addDays(new Date(actividades[i].fecha_fin_actividad), 1)
+	}
+
+	for (let i = 0, len = operaciones.length; i < len; i++) {
+		if (operaciones[i].cod_operacion == $('#frmFiltros').dxForm('instance').option().formData.cod_operacion) {
+			flagBID = ( (operaciones[i].cod_organismo_financiero == 2) ? true : false )
+
+			if (flagBID) {
+				//- let array = actividades
+				let array = ordenarActividadesBID(actividades)
+
+				for (let i = 0, len = actividades.length; i < len; i++) {
+					for (let j = 0, len2 = array.length; j < len2; j++) {
+						if (actividades[i].nro_actividad == array[j][1]) {
+							actividades[i].nro_orden_actividad = array[j][0]
+							break
+						}
+					}					
+				}
+			}
+		}
+	}
+
+	//- -------------------------------------------------------------------------
+	//código para la navegación por medio de las teclas direccionales en el datagrid
+	var currentRowIndex = -1, currentColumnIndex = -1, columnName
+	var rows = []
+	var contador = 0
+	var index = []
+
+	function ShiftRow(shiftCount) {
+
+		let targetRow = currentRowIndex + shiftCount
+		
+		if (targetRow >= 0) {
+			if (grid.getRowElement(targetRow) != undefined) {
+				grid.editCell(targetRow, columnName)
+			}
+		}
+	}
+
+	function ShiftColumn(shiftCount) {
+
+		let targetColumn
+
+		if (columnName === 'prog_01' && shiftCount == -1) {
+			targetColumn = 'cod_direccion'
+		} else if (columnName === 'cod_direccion' && shiftCount == 1) {
+			targetColumn = 'prog_01'
+		} else if (columnName.search('prog_') >= 0 || columnName.search('ejec_') >= 0) {
+
+			let number = Number( columnName.substr(5,6) )
+
+			if (columnName.search('prog_') >= 0 && shiftCount == 1) {
+				targetColumn = 'ejec_' + columnName.substr(5,6)
+			} else if (columnName.search('prog_') >= 0 && shiftCount == -1) {
+				targetColumn = 'ejec_' + (( number < 11  ) ? '0' + (number - 1) : number - 1 )
+			}
+
+			if (columnName.search('ejec_') >= 0 && shiftCount == -1) {
+				targetColumn = 'prog_' + columnName.substr(5,6)
+			} else if (columnName.search('ejec_') >= 0 && shiftCount == 1) {
+				targetColumn = 'prog_' + (( number < 9  ) ? '0' + (number + 1) : number + 1 )
+			}
+
+		} else {
+			targetColumn = currentColumnIndex + shiftCount
+		}
+
+		if (targetColumn.length > 0 || targetColumn >= 0) {
+			if (targetColumn < grid.columnCount() || targetColumn.length >= 0) {
+				grid.editCell(currentRowIndex, targetColumn)
+			}
+		}
+	}
+
+	function SelectNexRow() {
+		ShiftRow(1)
+	}
+
+	function SelectPreviousRow() {
+		ShiftRow(-1)
+	}
+
+	function SelectPreviousColumn() {
+		ShiftColumn(-1)
+	}
+
+
+	function SelectNextColumn() {
+		ShiftColumn(1)
+	}
+
+	var mapKeysToHandlers = {
+		"ArrowUp": SelectPreviousRow,
+		"ArrowDown": SelectNexRow,
+		"ArrowLeft": SelectPreviousColumn,
+		"ArrowRight": SelectNextColumn
+	}
+	//- -------------------------------------------------
+	
+	$( () => {
+
+		$('#btnNuevaActividad').dxButton({
+			text: 'Nueva Actividad',
+			type: 'default',
+			onClick: (info) => {
+				grid.addRow()
+			}
+		})
+	
+	//- -------------------------------------------------------
+		//- Tabla de Actividades
+	
+		grid = $('#dgdActividades').dxDataGrid({
+			dataSource: actividades,
+
+			paging: {
+				pageSize: 10
+			},			
+
+			// CheckBox Nuevo Reporte de actividad en ejecución
+
+			selection: {
+				mode: 'multiple',
+				deferred: true
+			},
+
+			columnAutoWidth: true,
+			showColumnLines: true,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			editing: {
+				mode: 'cell',
+				allowUpdating: true,
+				allowDeleting: true
+			},
+
+
+			columnFixing: { 
+				enabled: true
+			},
+			scrolling: {
+				useNative: true
+			},
+			width: $('section').width(),
+			selectionFilter: ["actividad_vencidas", "=", "1"],
+			columnResizingMode: 'widget',
+			allowColumnResizing: true,
+			columns: [
+			
+				{//cod_actividad
+					dataField: 'cod_actividad',
+					visible: false, 			
+				},		
+				{//no. actividad
+					dataField: 'nro_actividad',
+					caption: 'No. Actividad',
+					validationRules: [
+						{ type: 'required' },
+						{ type: 'stringLength', max: 20 }
+					],
+					fixed: true,
+					visibleIndex: 0
+				},					
+				{//nombre actividad
+					dataField: 'nombre_actividad',
+					caption: 'Nombre de Actividad',
+					validationRules: [
+						{ type: 'required' },
+						{ type: 'stringLength', max: 500 }
+					],
+					fixed: true,
+					visibleIndex: 1
+				},
+				
+				{//componente
+					dataField: 'cod_componente',
+					caption: 'Componente',
+					lookup : {
+						dataSource: componentes,
+						displayExpr: 'nro_componente',
+						valueExpr: 'cod_componente'
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					setCellValue: function (rowData, value) {
+						rowData.cod_subcomponente = null
+						rowData.cod_comp_sub = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 2
+				},
+				
+				{//subcomponente
+					dataField: 'cod_subcomponente',
+					caption: 'Subcomponente',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: subcomponentes
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['cod_componente', '=', options.data.cod_componente]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_subcomponente',
+						displayExpr: 'nro_subcomponente'
+					},
+					setCellValue: function (rowData, value) {
+						rowData.cod_comp_sub = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 3
+				},
+				{//indicador/producto
+					dataField: 'cod_ind_prod',
+					caption: 'Indicador/Producto',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: indic_prod
+							}
+
+							if (options.data && options.data.cod_subcomponente) {
+								dataSourceConfiguration.filter = ['cod_comp_sub', '=', options.data.cod_subcomponente]
+							} else if (options.data && options.data.cod_componente) {
+								dataSourceConfiguration.filter = ['cod_comp_sub', '=', options.data.cod_componente]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_ind_prod',
+						displayExpr: 'nombre_ind_prod'
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 4
+				},
+				{//no. correlativo
+					dataField: 'nro_orden_actividad',
+					caption: 'No. Correlativo',
+					dataType: "number",
+					validationRules: [
+						{ type: 'required' }, 
+						{ type: 'numeric' }
+					],
+					sortOrder: 'asc',
+					visibleIndex: 5
+				},
+				{//fecha inicio
+					dataField: 'fecha_inicio_actividad',
+					caption: 'Fecha Inicio',
+					dataType: "date",
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 6
+				},
+				{//fecha fin
+					dataField: 'fecha_fin_actividad',
+					caption: 'Fecha Fin',
+					dataType: "date",
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 7
+				},
+				{//dirección
+					dataField: 'nombre_direccion',
+					caption: 'Dirección',
+					lookup : {
+						dataSource: direcciones,
+						displayExpr: 'nombre_direccion',
+						valueExpr: 'nombre_direccion'
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					setCellValue: function (rowData, value) {
+						rowData.nombre_direccion = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 8
+				},
+
+				{//responsable
+					dataField: 'cod_direccion',
+					caption: 'Responsable',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: responsables
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['nombre_direccion', '=', options.data.nombre_direccion]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_direccion',
+						displayExpr: 'responsable_direccion'
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 9
+				},
+
+				{//monto programado total
+					caption: 'Montos Totales',
+					visibleIndex: 10,
+					columns: [
+						{
+							caption: 'Programado',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+								
+								let total = 0
+
+								if (data.prog_01)
+									total += data.prog_01
+
+								if (data.prog_02)
+									total += data.prog_02
+
+								if (data.prog_03)
+									total += data.prog_03
+
+								if (data.prog_04)
+									total += data.prog_04
+
+								if (data.prog_05)
+									total += data.prog_05
+
+								if (data.prog_06)
+									total += data.prog_06
+
+								if (data.prog_07)
+									total += data.prog_07
+
+								if (data.prog_08)
+									total += data.prog_08
+
+								if (data.prog_09)
+									total += data.prog_09
+
+								if (data.prog_10)
+									total += data.prog_10
+
+								if (data.prog_11)
+									total += data.prog_11
+
+								if (data.prog_12)
+									total += data.prog_12
+								
+								return '$' + (total.toFixed(2)).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							},
+							//visibleIndex: 11
+						},
+						{
+							caption: 'Ejecutado',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+
+								let total = 0
+
+								if (data.ejec_01)
+									total += data.ejec_01
+
+								if (data.ejec_02)
+									total += data.ejec_02
+
+								if (data.ejec_03)
+									total += data.ejec_03
+
+								if (data.ejec_04)
+									total += data.ejec_04
+
+								if (data.ejec_05)
+									total += data.ejec_05
+
+								if (data.ejec_06)
+									total += data.ejec_06
+
+								if (data.ejec_07)
+									total += data.ejec_07
+
+								if (data.ejec_08)
+									total += data.ejec_08
+
+								if (data.ejec_09)
+									total += data.ejec_09
+
+								if (data.ejec_10)
+									total += data.ejec_10
+
+								if (data.ejec_11)
+									total += data.ejec_11
+
+								if (data.ejec_12)
+									total += data.ejec_12
+								
+								return '$' + (total.toFixed(2)).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+
+							},
+							//visibleIndex: 12
+						}
+					]
+				},
+				{//enero
+					caption: 'Enero',
+					visibleIndex: 11,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_01',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_01) {
+								return '$' + data.prog_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 13
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_01',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_01) {
+								return '$' + data.ejec_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 14
+					}]
+				},
+				{//febrero
+					caption: 'Febrero',
+					visibleIndex: 12,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_02',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_02) {
+								return '$' + data.prog_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 15
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_02',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_02) {
+								return '$' + data.ejec_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 16
+					}]
+				},
+				{//marzo
+					caption: 'Marzo',
+					visibleIndex: 13,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_03',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_03) {
+								return '$' + data.prog_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 17
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_03',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_03) {
+								return '$' + data.ejec_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 18
+					}]
+				},
+				{//abril
+					caption: 'Abril',
+					visibleIndex: 14,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_04',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_04) {
+								return '$' + data.prog_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 19
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_04',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_04) {
+								return '$' + data.ejec_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 20
+					}]
+				},
+				{//mayo
+					caption: 'Mayo',
+					visibleIndex: 15,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_05',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_05) {
+								return '$' + data.prog_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 21
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_05',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_05) {
+								return '$' + data.ejec_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 22
+					}]
+				},
+				{//junio
+					caption: 'Junio',
+					visibleIndex: 16,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_06',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_06) {
+								return '$' + data.prog_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 23
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_06',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_06) {
+								return '$' + data.ejec_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 24
+					}]
+				},
+				{//julio
+					caption: 'Julio',
+					visibleIndex: 17,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_07',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_07) {
+								return '$' + data.prog_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 25
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_07',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_07) {
+								return '$' + data.ejec_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 26
+					}]
+				},
+				{//agosto
+					caption: 'Agosto',
+					visibleIndex: 18,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_08',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_08) {
+								return '$' + data.prog_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 27
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_08',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_08) {
+								return '$' + data.ejec_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 28
+					}]
+				},
+				{//septiembre
+					caption: 'Septiembre',
+					visibleIndex: 19,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_09',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_09) {
+								return '$' + data.prog_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 29
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_09',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_09) {
+								return '$' + data.ejec_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 30
+					}]
+				},
+				{//octubre
+					caption: 'Octubre',
+					visibleIndex: 20,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_10',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_10) {
+								return '$' + data.prog_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 31
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_10',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_10) {
+								return '$' + data.ejec_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 32
+					}]
+				},
+				{//noviembre
+					caption: 'Noviembre',
+					visibleIndex: 21,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_11',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_11) {
+								return '$' + data.prog_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 33
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_11',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_11) {
+								return '$' + data.ejec_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 34
+					}]
+				},
+				{//diciembre
+					caption: 'Diciembre',
+					visibleIndex: 22,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_12',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_12) {
+								return '$' + data.prog_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						//visibleIndex: 35
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_12',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_12) {
+								return '$' + data.ejec_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+					}]
+				}
+			],
+			onRowInserted: (e) => {
+
+				if (!flagBID) {
+
+					for (let i = actividades.length - 2; i >= 0; i--) {
+						if (e.data.nro_orden_actividad <= actividades[i].nro_orden_actividad) {
+							actividades[i].nro_orden_actividad++
+							actividades[i].enviar = true
+						}
+					}					
+				}
+				actividades[actividades.length - 1].enviar = true
+				
+				grid.refresh()
+			},
+			onRowUpdated: (e) => {
+
+				if (e.data.nro_orden_actividad && cambioCorrelativo.flag) {
+
+					if (cambioCorrelativo.incremento) {
+
+						for (let i = 0, len = actividades.length; i < len; i++) {
+
+							if ( (e.data.nro_orden_actividad >= actividades[i].nro_orden_actividad) && (cambioCorrelativo.valor <= actividades[i].nro_orden_actividad) && ( (actividades[i].cod_actividad != null && e.key.cod_actividad != actividades[i].cod_actividad) || (actividades[i].__KEY__ != null && actividades[i].__KEY__ != e.key.__KEY__) ) ) {
+								actividades[i].nro_orden_actividad--
+								actividades[i].enviar = true
+							}
+						}
+
+					} else {
+
+						for (let i = 0, len = actividades.length; i < len; i++) {
+
+							if ( (e.data.nro_orden_actividad <= actividades[i].nro_orden_actividad) && (cambioCorrelativo.valor >= actividades[i].nro_orden_actividad) && ( (actividades[i].cod_actividad != null && e.key.cod_actividad != actividades[i].cod_actividad) || (actividades[i].__KEY__ != null && actividades[i].__KEY__ != e.key.__KEY__) ) ) {
+								actividades[i].nro_orden_actividad++
+								actividades[i].enviar = true
+							}
+						}
+
+					}
+
+					cambioCorrelativo.valor = null
+					cambioCorrelativo.incremento = null
+					cambioCorrelativo.flag = false
+				}
+
+				for (let i = 0, len = actividades.length; i < len; i++) {
+					if (e.key.cod_actividad == actividades[i].cod_actividad && e.key.__KEY__ == actividades[i].__KEY__) {
+						actividades[i].enviar = true
+					}
+				}
+
+				grid.refresh()
+			},
+			onRowUpdating: (e) => {
+				//aquí puedo obtener el valor anterior al cambio, justo antes que lo haga en el dataSource, hacer la validación para no incremente en los valores mayores a este
+				
+				if ( (e.oldData.nro_orden_actividad > e.newData.nro_orden_actividad) || (flagBID) ) {
+					cambioCorrelativo.incremento = false
+				} else {
+					cambioCorrelativo.valor = e.oldData.nro_orden_actividad
+					cambioCorrelativo.flag = true
+					cambioCorrelativo.incremento = true
+				}
+			},
+			onRowRemoved: (e) => {
+
+				if (e.data.cod_actividad != null) {
+					$.ajax({
+						type: 'POST',
+						url: '/pym/poapep/eliminarActividad',
+						data: {
+							codigo : e.data.cod_actividad
+						},
+						dataType: 'json',
+						encode: true
+					})
+				}
+
+				if (!flagBID) {
+					for (let i = 0, len = actividades.length; i < len; i++) {
+						if (e.data.nro_orden_actividad < actividades[i].nro_orden_actividad) {
+							actividades[i].nro_orden_actividad--
+						}
+					}
+				}
+
+				$('#btnGuardarActividades').dxButton('instance')._clickAction()
+			},
+			//onEditorPreparing y onEditingStart, son parte del código para la navegación con las direccionales
+			onEditorPreparing: (e) => {
+				e.editorOptions.onKeyDown = (e) => {
+					let findHandler = mapKeysToHandlers[e.event.key]
+
+					if (findHandler) {
+						$("#dvFocusable").focus() // to save edit data
+						findHandler()
+						e.event.preventDefault()
+						e.event.stopPropagation()
+					}
+				}
+			},
+			onEditingStart: (e) => {
+				currentRowIndex = grid.getRowIndexByKey(e.key)
+				currentColumnIndex = grid.columnOption(e.column.dataField, "visibleIndex")
+				columnName = e.column.dataField
+			}
+			
+		}).dxDataGrid("instance")
+		
+		$('#btnGuardarActividades').dxButton({
+			text: 'Guardar Actividades',
+			type: 'default',
+			onClick: (info) => { 
+					datacheck = $('#dgdActividades').dxDataGrid('instance');
+					datacheck.getSelectedRowsData().then(function(rowdata){ 
+						keys = rowdata;
+
+						let data = {
+						
+						filtros: $('#frmFiltros').dxForm('instance').option().formData,
+						actividades: new Array(),
+						keys: new Array()
+
+						}
+
+					// ciclo para agregar las actividades que estan retrasadas
+						for(let i = 0, len = keys.length; i < len; i++){
+
+							data.keys.push(keys[i].cod_actividad)
+						}
+				
+						for (let i = 0, len = actividades.length; i < len; i++) {
+							if (actividades[i].enviar)
+								data.actividades.push(actividades[i])
+						}
+
+
+					//recorre el total de actividades, para buscar el código del indicador/producto
+						for (let i = 0, len = data.actividades.length; i < len; i++) {
+							data.actividades[i].fecha_inicio_actividad = formatDate(data.actividades[i].fecha_inicio_actividad)
+							data.actividades[i].fecha_fin_actividad = formatDate(data.actividades[i].fecha_fin_actividad)
+						}
+					
+						$.ajax({
+							type: 'POST',
+							url: '/pym/poapep/guardarActividades', 
+							contentType: 'application/json',
+							data: JSON.stringify(data),
+							dataType: 'json',
+							encode: true,
+							beforeSend: () => {
+								$('.spinner').show()
+							}
+						})
+						.done( (response) => {
+							$('.spinner').hide()
+							$('#frmFiltros').dxForm('instance').getEditor('btnObtenerActividades')._clickAction()
+						})
+												
+					 })							
+			}
+		})
+
+		if (flagBID) {
+			grid.option('columns[4].visible',false)
+			grid.option('columns[6].visible',false )
+			grid.option('columns[6].validationRules','null')
+		}
+	
+	})
+	

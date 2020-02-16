@@ -1,0 +1,230 @@
+.dx-fieldset
+	.dx-fieldset-header Resumen del Programa
+	.dx-field
+		.dx-field-label Organismo
+		.dx-field-value
+			#slcOrganismo
+	.dx-field
+		.dx-field-label Año
+		.dx-field-value
+			#slcAnos
+#dgdResumenPrograma.margin-bottom
+#chtResumemPrograma
+
+script.
+
+	var operaciones = !{JSON.stringify(operaciones)},
+		año = !{JSON.stringify(año)},
+		resumen = [{descripcion: año, programado: 0, ejecutado: 0}],
+		años = [2017, 2018, 2019, 2020, 2021, 2022],
+		organismos = [{organismo: 'BM', cod_organismo: 1}, {organismo: 'BID', cod_organismo: 2}],
+		dataGrid,
+		chart
+
+	for (let i = 0, len = operaciones.length; i < len; i++) {
+		resumen[0].programado += operaciones[i].programado
+		resumen[0].ejecutado += operaciones[i].ejecutado
+	}
+
+	function obtenerOrganismo(organismo, año) {
+
+		$.ajax({
+			type: 'POST',
+			url: '/pym/reportes/mResumenPrograma',
+			data: {
+				organismo: organismo,
+				año: año,
+				json: true
+			},
+			dataType: 'json',
+			encode: true,
+			beforeSend: () => {
+				$('.spinner').show()
+			}
+		})
+		.done( (response) => {
+
+			let organismo = $("#slcOrganismo").dxSelectBox("instance").option('text')
+
+			resumen[0].programado = 0
+			resumen[0].ejecutado = 0
+			resumen[0].descripcion = ((organismo !== null) ? organismo + ' año ' : '' ) + $("#slcAnos").dxSelectBox("instance").option('text')
+
+			for (let i = 0, len = response.length; i < len; i++) {
+				resumen[0].programado += response[i].programado
+				resumen[0].ejecutado += response[i].ejecutado
+			}
+
+			dataGrid.option('dataSource', response)
+			chart.option('dataSource', resumen)
+			//chart.option('title.text', 'Programado y Ejecutado, ' + resumen[0].descripcion)
+			chart.render()
+			$('.spinner').hide()
+		})
+	}
+
+	$( () => {
+
+		$("#slcAnos").dxSelectBox({
+			items: años,
+			placeholder: 'Seleccione un año',
+			value: año,
+			onValueChanged: (data) => {
+
+				let organismo = $("#slcOrganismo").dxSelectBox("instance").option('value')
+				//if (organismo != null)
+				obtenerOrganismo(organismo, data.value)
+			}
+		})
+
+		$('#slcOrganismo').dxSelectBox({
+			dataSource: organismos,
+			placeholder: 'Seleccione un organismo',
+			displayExpr: "organismo",
+			valueExpr: "cod_organismo",
+			onValueChanged: (data) => {
+
+				let año = $("#slcAnos").dxSelectBox("instance").option('value')
+				//if (año != null)
+				obtenerOrganismo(data.value, año)
+
+			}
+		})
+
+		dataGrid = $('#dgdResumenPrograma').dxDataGrid({
+			dataSource: operaciones,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			columnAutoWidth: true,
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			columnHidingEnabled: true,
+			wordWrapEnabled: true,
+			columns: [
+				{
+					dataField: 'nro_operacion',
+					caption: 'No. Operación'
+				},
+				{
+					dataField: 'programado',
+					caption: 'Programado',
+					calculateDisplayValue: (data) => {
+						return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+					}
+				},
+				{
+					dataField: 'ejecutado',
+					caption: 'Ejecutado',
+					calculateDisplayValue: (data) => {
+						return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+					}
+				},
+				{
+					dataField: 'porcentaje',
+					caption: '% Ejecución',
+					calculateDisplayValue: (data) => {
+						return ((data.ejecutado * 100) / data.programado ).toFixed(2) + '%'
+					}
+				}
+			],
+			summary: {
+				totalItems: [
+					{
+						column: 'nro_operacion',
+						summaryType: 'min',
+						customizeText: (data) => {
+							return 'TOTAL'
+						}
+					},
+					{
+						column: 'programado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejecutado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'porcentaje',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return ( (resumen[0].ejecutado * 100) / resumen[0].programado ).toFixed(2) + '%'
+						}
+					}
+				]
+			}
+		}).dxDataGrid("instance")
+
+		chart = $('#chtResumemPrograma').dxChart({
+			dataSource: resumen,
+			commonSeriesSettings: {
+				argumentField: 'descripcion',
+				type: 'bar',
+				hoverMode: 'allArgumentPoints',
+				selectionMode: 'allArgumentPoints',
+				label: {
+					visible: true,
+					format: {
+						type: 'fixedPoint',
+						precision: 0
+					},
+					customizeText: (pointinfo) => {
+						return '$' + pointinfo.valueText
+					}
+				}
+			},
+			series: [
+				{ valueField: 'programado', name: 'Programado' },
+				{ valueField: 'ejecutado', name: 'Ejecutado' }
+			],
+			legend: {
+				verticalAlignment: 'bottom',
+				horizontalAlignment: 'center'
+			},
+			tooltip: {
+				enabled: true,
+				customizeTooltip: (args) => {
+
+					let valueText = '$' + args.originalValue.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+						porcentaje = ( (resumen[0].ejecutado * 100) / resumen[0].programado ),
+						html = `<div class="centrar">${args.argument} | ${args.seriesName}</div><div class="centrar">${valueText}</div>`
+
+					if (args.seriesName === 'Ejecutado')
+						html += `<div class="centrar">% de ejecución: ${porcentaje.toFixed(2)}%</div>`
+
+					return {
+						html: html
+					}
+				}
+			},
+			commonAxisSettings: {
+				label: {
+					alignment: 'center',
+					displayMode: 'stagger',
+					staggeringSpacing: 1
+				}
+			},
+			valueAxis: {
+				visible: true,
+				autoBreaksEnabled: true,
+				maxAutoBreakCount: 3
+			},
+			commonAxisSettings: {
+				allowDecimals: false
+			}
+		}).dxChart("instance")
+	})

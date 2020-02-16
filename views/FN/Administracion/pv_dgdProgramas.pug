@@ -1,0 +1,148 @@
+header.major
+	h3 Programas
+#btnNuevoPrograma.margin-bottom
+#dgdProgramas.margin-bottom
+#btnGuardarProgramas.margin-bottom
+
+script.
+	var programas = !{JSON.stringify(programas)},
+		unidades = !{JSON.stringify(unidades)}
+
+	$( () => {
+
+		$('#btnNuevoPrograma').dxButton({
+			text: 'Nuevo Programa',
+			type: 'default',
+			onClick: (info) => {
+				$('#dgdProgramas').dxDataGrid('instance').addRow()
+			}
+		})
+
+		$('#dgdProgramas').dxDataGrid({
+			dataSource: programas,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			columnHidingEnabled: true,
+			editing: {
+				mode: 'cell',
+				allowUpdating: true
+			},
+			columns: [
+				{
+					allowEditing: false,
+					caption: 'Código',
+					dataField: 'cod_programa',
+					visible: false
+				},
+				{
+					dataField: 'cod_unidad',
+					caption: 'No. Unidad Ejecutora',
+					lookup : {
+						dataSource: unidades,
+						displayExpr: 'numero_unidad',
+						valueExpr: 'cod_unidad'
+					},
+					validationRules: [{ type: 'required' }],
+					width: 100
+				},
+				{
+					caption: 'Nro.',
+					dataField: 'numero_programa',
+					validationRules: [
+						{ type: 'required' }, 
+						{ type: 'stringLength', max: 50 }
+					],
+					width: 100
+				},
+				{
+					caption: 'Nombre',
+					dataField: 'nombre_programa',
+					validationRules: [
+						{ type: 'required' },
+						{ type: 'stringLength', max: 200 }
+					]
+				},
+				{
+					caption: 'Descripción',
+					dataField: 'descripcion_programa',
+					validationRules: [
+						{ type: 'stringLength', max: 500 }
+					]
+				}
+			]
+		})
+
+		$('#btnGuardarProgramas').dxButton({
+			text: 'Guardar Programas',
+			type: 'default',
+			onClick: (info) => {
+
+				$('#dgdProgramas').dxDataGrid('instance').saveEditData().then( () => {
+
+					let data = {
+						cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia,
+						programas: $('#dgdProgramas').dxDataGrid('instance').getDataSource().store()._array
+					} 
+
+
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/guardarProgramas',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						dataType: 'json',
+						encode: true,
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+
+						let flag = false
+						
+						for (let i = 0, len = response.length; i < len; i++) {
+							if (response[i] == 0)
+								flag = true
+						}
+
+						jQuery('body').css('overflow', 'visible')
+						$("#myModal").css("display", "none")
+						$('.spinner').hide()
+
+						if (flag) {
+							DevExpress.ui.notify({
+								message: 'Ocurrio un error al intentar guardar uno o más programas.',
+								type: 'error',
+								displayTime: 5000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						} else {
+							DevExpress.ui.notify({
+								message: 'Programas guardados exitosamente.',
+								type: 'success',
+								displayTime: 3000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						}
+					})
+
+				})
+			}
+		})
+	})

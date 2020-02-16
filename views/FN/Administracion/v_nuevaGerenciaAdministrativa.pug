@@ -1,0 +1,347 @@
+extends ../layout.pug
+block head
+	style.
+
+		#divEstructura {
+			display: none;
+		}
+
+		#frmOperacion {
+			margin-bottom: 30px;
+		}
+
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+		.dx-link {
+			margin-right: 5px;
+		}
+
+		.col_20 {
+			display: inline-block;
+			width: 20%;
+			text-align: center;
+		}
+
+block content
+	header.major
+		if gerencia.cod_gerencia == 0
+			h2 Nueva Gerencia Administrativa
+		else
+			h2 Actualizar Gerencia Administrativa
+	#frmGerencia.margin-bottom
+	#btnGuardarGerencia.margin-bottom
+	#divEstructura
+		header.major
+			h3 Estructura
+		#divUnidades.col_20
+			#btnUnidades
+		#divPrograma.col_20
+			#btnPrograma
+		#divSubPrograma.col_20
+			#btnSubPrograma
+		#divProyecto.col_20
+			#btnProyecto
+		#divObra.col_20
+			#btnObra
+	include ../../spinner.pug
+	include ../../modal.pug
+
+block scripts
+	script.
+		var gerencia = !{JSON.stringify(gerencia)}
+
+		function load() {
+
+			$('#frmGerencia').dxForm({
+				colCount: 1,
+				formData: gerencia,
+				labelLocation: 'top',
+				items: [
+					{//código
+						dataField: 'cod_gerencia',
+						visible: false
+					},
+					{//nombre
+						colSpan: 6,
+						dataField: 'numero_gerencia',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							maxLength: 50
+						},
+						label: {
+							text: 'N°. Gerencia Administrativa'
+						},
+						isRequired: true
+					},
+					{//nombre_unidad
+						dataField: 'nombre_gerencia',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							maxLength: 150
+						},
+						label: {
+							text: 'Nombre Gerencia Administrativa'
+						},
+						isRequired: true
+					},
+					/*
+					{//estado
+						dataField: 'estado_unidad',
+						editorType: 'dxCheckBox',
+						editorOptions: {
+							value: true
+						},
+						label: {
+							text: 'Activo',
+							location: 'left'
+						}
+					},
+					*/
+					{//año_unidad
+						dataField: 'año_gerencia',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							maxLength: 4 ,
+							onKeyPress: (info) => {
+								let event = info.jQueryEvent
+								if (event.keyCode == 46 || (event.keyCode >= 48 && event.keyCode <= 57 ) ) {
+									event.stopPropagation()
+								} else {
+									event.preventDefault()
+								}
+							}
+						},
+						label: {
+							text: 'Año'
+						},
+						isRequired: true
+					},
+					{//monto
+						dataField: 'monto_aprobado_gerencia',
+						editorType: 'dxTextBox',
+						editorOptions: {
+							onFocusIn: (e) => {
+								if (typeof e.component._options.value === 'string') {
+									$('#frmGerencia').dxForm('instance').getEditor('monto_aprobado_gerencia').option('value', e.component._options.value.substring(1, e.component._options.value.length).replace(/,/g, '') )
+								}
+							},
+							onFocusOut: (e) => {
+								if (typeof e.component._options.value === 'string' && e.component._options.value.length > 0) {
+									$('#frmGerencia').dxForm('instance').getEditor('monto_aprobado_gerencia').option('value', 'L' + e.component._options.value.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') )
+								}
+							},
+							onKeyPress: (info) => {
+								let event = info.jQueryEvent
+								if (event.keyCode == 46 || (event.keyCode >= 48 && event.keyCode <= 57 ) ) {
+									event.stopPropagation()
+								} else {
+									event.preventDefault()
+								}
+							}
+						},
+						label: {
+							text: 'Monto Aprobado (L)'
+						},
+						isRequired: true
+					}
+				]
+			})
+
+			$('#btnGuardarGerencia').dxButton({
+				text: 'Guardar Gerencia Administrativa',
+				type: 'default',
+				onClick: (info) => {
+
+					let result = $('#frmGerencia').dxForm('instance').validate()
+					if (result.isValid) {
+						
+						let data = $('#frmGerencia').dxForm('instance').option().formData 
+
+						if (typeof data.monto_aprobado_gerencia === 'string') {
+							data.monto_aprobado_gerencia = data.monto_aprobado_gerencia.substring(1, data.monto_aprobado_gerencia.length).replace(/,/g, '')
+						}
+
+						$.ajax({
+							type: 'POST',
+							url: '/fn/administracion/guardarGerenciaAdministrativa',
+							data: {
+								codigo : data.cod_gerencia,
+								nombre : data.nombre_gerencia,
+								numero : data.numero_gerencia,
+								//estado : data.estado_unidad,
+								año : data.año_gerencia,
+								monto : data.monto_aprobado_gerencia
+							},
+							dataType: 'json',
+							encode: true,
+							beforeSend: () => {
+								$('.spinner').show()
+							}
+						})
+						.done( (response) => {
+
+							$('#frmGerencia').dxForm('instance').option().formData.cod_gerencia = response.codigo
+							$('#divEstructura').show()
+							$('.spinner').hide()
+
+							DevExpress.ui.notify({
+								message: 'Gerencia Administrativa guardada exitosamente.',
+								type: 'success',
+								displayTime: 3000,
+								position: {
+									my: 'center top',
+									at: 'center top'
+								}
+							})
+						})
+					}
+				}
+			})
+
+			$('#btnUnidades').dxButton({
+				text: 'Unidades Ejecutoras',
+				type: 'default',
+				onClick: (e) => {
+
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/pv_dgdUnidades',
+						data: {
+							cod_unidad: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+				}
+			})
+
+			$('#btnPrograma').dxButton({
+				text: 'Programa',
+				type: 'default',
+				onClick: (e) => {
+
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/pv_dgdProgramas',
+						data: {
+							cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+				}
+			})
+
+			$('#btnSubPrograma').dxButton({
+				text: 'Sub-Programa',
+				type: 'default',
+				onClick: (e) => {
+
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/pv_dgdSubProgramas',
+						data: {
+							cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+					
+				}
+			})
+
+			$('#btnProyecto').dxButton({
+				text: 'Proyecto',
+				type: 'default',
+				onClick: (e) => {
+					
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/pv_dgdProyectos',
+						data: {
+							cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+
+				}
+			})
+			
+			$('#btnObra').dxButton({
+				text: 'Act / Obra',
+				type: 'default',
+				onClick: (e) => {
+					
+					$.ajax({
+						type: 'POST',
+						url: '/fn/administracion/pv_dgdAct_Obras',
+						data: {
+							cod_gerencia: $('#frmGerencia').dxForm('instance').option().formData.cod_gerencia
+						},
+						dataType: 'html',
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.modal-body').html(response)
+						$('.spinner').hide()
+						jQuery('body').css('overflow', 'hidden')
+						$('#myModal').css('display', 'block')
+					})
+
+				}
+			})
+
+
+			if (gerencia.monto_aprobado_gerencia) {
+				$('#frmGerencia').dxForm('instance').getEditor('monto_aprobado_gerencia').option('value', 'L' + gerencia.monto_aprobado_gerencia.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') )
+			}
+
+			if (gerencia.cod_gerencia > 0) {
+				$('#divEstructura').show()
+			} 
+
+		}
+
+
+
+
+
+
+

@@ -1,0 +1,103 @@
+extends ../layout.pug
+
+block head
+	style.
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+block content
+	header.major
+		h2 Listado de Gerencias Administrativas
+	#btnNuevaGerenciaAdministrativa.margin-bottom
+	#dgdGerenciasAdministrativas
+	include ../../spinner.pug
+block scripts
+	script.
+		var gerencias = !{JSON.stringify(gerencias)}
+
+		function load() {
+
+			$("#btnNuevaGerenciaAdministrativa").dxButton({
+				text:"Nueva Gerencia Administriva" ,
+				type:"default" ,
+				onClick: (e) => { 					
+					window.location.replace('/fn/administracion/nuevaGerenciaAdministrativa')
+				}
+			})
+		
+			$("#dgdGerenciasAdministrativas").dxDataGrid({
+				dataSource:gerencias ,
+				paging:{
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				columnAutoWidth: true,
+				columnFixing: { 
+					enabled: true
+				},
+				showColumnLines: false,
+				showRowLines: true,
+				rowAlternationEnabled: true,
+				showBorders: false,
+				columnHidingEnabled: true,
+				
+				width: $('section').width(),
+				onContentReady: (e) => {
+					e.element.find('.dx-datagrid-addrow-button').dxButton({
+						onClick: () => {
+							window.location.replace('/fn/administracion/v_listadoGerenciasAdministrativas')
+						}
+					})
+				},
+				columns: [
+					{
+						width: 100,
+						alignment: 'center',
+						cellTemplate: (container, options) => {
+							$('<a/>').addClass('dx-link')
+								.text('Editar')
+								.on('dxclick', () => {
+									window.location.replace('/fn/administracion/actualizarGerenciaAdministrativa/' + options.data.cod_gerencia)
+								})
+								.appendTo(container)
+						}
+					},
+					{
+						caption: 'Código',
+						width: 30,
+						dataField: 'cod_gerencia',
+						visible: false,
+						allowEditing: false
+					},
+					{
+						caption: 'Nro Gerencia',
+						dataField: 'numero_gerencia'
+					},
+					{
+						caption: 'Nombre Gerencia',
+						dataField: 'nombre_gerencia'
+					},
+					{
+						caption: 'Año',
+						dataField: 'año_gerencia'
+					},
+					{
+						caption: 'Monto Aprobado (L)',
+						dataField: 'monto_aprobado_gerencia',
+						alignment: 'center' ,
+				     	calculateDisplayValue: (data) => {
+							return 'L' + data.monto_aprobado_gerencia.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}						
+					}
+				]
+			})
+		}
+
+

@@ -1,0 +1,97 @@
+extends ../layout.pug
+
+block head
+	script(src="/js/PYM/shared.js")
+	style.
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+block content
+	header.major
+		h2 Reporte de POA/PEP
+	#frmFiltros.margin-bottom
+	#divPoaPep
+	include ../../spinner.pug
+
+block scripts
+	script.
+
+		var operaciones = !{JSON.stringify(operaciones)},
+			años = [{año: 2017},{año: 2018},{año: 2019},{año: 2020}],
+			sideBarFlag = true
+
+		function load() {
+
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					$('#dgdActividades').dxDataGrid('instance').option('width', $('#dgdActividades').dxDataGrid('instance').option('width') + $('#sidebar').width())
+					sideBarFlag = false
+				} else {
+					$('#dgdActividades').dxDataGrid('instance').option('width', $('#dgdActividades').dxDataGrid('instance').option('width') - $('#sidebar').width())
+					sideBarFlag = true
+				}
+			})
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				colCount: 2,
+				items: [
+					{
+						dataField: 'cod_operacion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: operaciones,
+							displayExpr: 'nro_operacion',
+							valueExpr: 'cod_operacion'
+						},
+						label: {
+							text: 'Operación'
+						},
+						isRequired: true
+					},
+					{
+						dataField: 'año_actividad',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: años,
+							displayExpr: 'año',
+							valueExpr: 'año'
+						},
+						label: {
+							text: 'Año'
+						},
+						isRequired: true
+					},
+					{
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Obtener POA/PEP',
+							type: 'default',
+							onClick: (e) => {
+
+								let data = $('#frmFiltros').dxForm('instance').option().formData,
+									result = $('#frmFiltros').dxForm('instance').validate()
+
+								if (result.isValid) {
+									$.ajax({
+										type: 'POST',
+										url: '/pym/reportes/pv_dgdActividades',
+										data: data,
+										dataType: 'html',
+										beforeSend: () => {
+											$('.spinner').show()
+										}
+									})
+									.done( (response) => {
+										$('#divPoaPep').html(response)
+										$('.spinner').hide()
+									})
+								}
+							}
+						}
+					}
+				]
+			})
+
+		}

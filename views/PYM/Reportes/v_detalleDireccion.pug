@@ -1,0 +1,208 @@
+extends ../layout.pug
+
+block head
+	style.
+
+		.col_50 {
+			display: inline-block;
+			width: 49%;
+		}
+
+		.text {
+			z-index: 2;
+			position: absolute;
+			text-align: center;
+			width: 8%;
+			margin-top: 13px;
+		}
+
+		.margin-bottom {
+			margin-bottom: 40px;
+		}
+
+		.currency, .img-container {
+			text-align: center;
+		}
+
+		.cero {
+			height: 32px;
+			width: 0%;
+			background-color: rgb(248, 105, 107);
+			height: 50px;
+		}
+
+		.rojo {
+			height: 32px;
+			width: 0%;
+			background-color: rgb(248, 123, 110);
+			height: 50px;
+		}
+
+		.amarillo {
+			height: 32px;
+			width: 0%;
+			background-color: rgb(253, 215, 128);
+			height: 50px;
+		}
+
+		.verde {
+			height: 32px;
+			width: 0%;
+			background-color: rgb(99, 190, 123);
+			height: 50px;
+		}
+
+		.azul {
+			height: 32px;
+			width: 0%;
+			background-color: rgb(142, 170, 219);
+			height: 50px;
+		}
+
+block content
+	header.major
+		h2 Reporte Por Dirección
+	#frmFiltros.margin-bottom
+	#divDireccion.margin-bottom
+	#divResumenMes
+		include pv_resumenMes.pug
+	#divSimbologia
+		header.major
+			h3 Simbología
+		img(src='/img/simbologia.png')
+	include ../../spinner.pug
+
+block scripts
+	script.
+
+		var DDTs = !{JSON.stringify(DDTs)},
+			operaciones = !{JSON.stringify(operaciones)},
+			años = [{año: 2017},{año: 2018},{año: 2019},{año: 2020}],
+			meses = !{JSON.stringify(meses)},
+			sideBarFlag = true
+		
+		$( () => {
+
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					try {
+						$('#dgdResumenOperaciones').dxDataGrid('instance').option('width', $('#dgdResumenOperaciones').dxDataGrid('instance').option('width') + $('#sidebar').width())
+						$('#chtResumenOperaciones').dxChart('instance').option('width', $('#chtResumenOperaciones').dxChart('instance').option('width') + $('#sidebar').width())
+						$('#chtResumenOperaciones').dxChart('instance').render()
+					} catch (err) {}
+
+					try {
+						$('#dgdDetalleDireccion').dxDataGrid('instance').option('width', $('#dgdDetalleDireccion').dxDataGrid('instance').option('width') + $('#sidebar').width())
+						$('#chtResumenDireccion').dxChart('instance').option('width', $('#chtResumenDireccion').dxChart('instance').option('width') + $('#sidebar').width())
+						$('#chtResumenDireccion').dxChart('instance').render()
+					} catch (err) {}
+					sideBarFlag = false
+				} else {
+					try {
+						$('#dgdResumenOperaciones').dxDataGrid('instance').option('width', $('#dgdResumenOperaciones').dxDataGrid('instance').option('width') - $('#sidebar').width())
+						$('#chtResumenOperaciones').dxChart('instance').option('width', $('#chtResumenOperaciones').dxChart('instance').option('width') - $('#sidebar').width())
+						$('#chtResumenOperaciones').dxChart('instance').render()
+					} catch (err) {}
+					
+					try {
+						$('#dgdDetalleDireccion').dxDataGrid('instance').option('width', $('#dgdDetalleDireccion').dxDataGrid('instance').option('width') - $('#sidebar').width())
+						$('#chtResumenDireccion').dxChart('instance').option('width', $('#chtResumenDireccion').dxChart('instance').option('width') - $('#sidebar').width())
+						$('#chtResumenDireccion').dxChart('instance').render()
+					} catch (err) {
+						console.log(err)
+					}					
+					sideBarFlag = true
+				}
+			})
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				colCount: 2,
+				items: [
+					{
+						colSpan: 2,
+						dataField: 'nombre_direccion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: DDTs,
+							displayExpr: 'nombre_direccion',
+							valueExpr: 'nombre_direccion'
+							//valueExpr: 'cod_direccion'
+						},
+						label: {
+							text: 'Dirección'
+						},
+						isRequired: true
+					},
+					{
+						colSpan: 2,
+						dataField: 'cod_operacion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: operaciones,
+							displayExpr: 'nro_operacion',
+							valueExpr: 'cod_operacion'
+						},
+						label: {
+							text: 'Operación'
+						},
+						isRequired: true
+					},
+					{
+						dataField: 'año',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: años,
+							displayExpr: 'año',
+							valueExpr: 'año'
+						},
+						label: {
+							text: 'Año'
+						},
+						isRequired: true
+					},
+					{
+						dataField: 'cod_mes',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: meses,
+							displayExpr: 'desc_mes',
+							valueExpr: 'cod_mes'
+						},
+						label: {
+							text: 'Mes'
+						},
+						isRequired: true
+					},
+					{
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Obtener Detalle',
+							type: 'default',
+							onClick: (e) => {
+
+								let data = $('#frmFiltros').dxForm('instance').option().formData,
+									result = $('#frmFiltros').dxForm('instance').validate()
+
+								if (result.isValid) {
+
+									$.ajax({
+										type: 'POST',
+										url: '/pym/reportes/pv_detalleDireccion',
+										data: data,
+										dataType: 'html',
+										beforeSend: () => {
+											$('.spinner').show()
+										}
+									})
+									.done( (response) => {
+										$('#divDireccion').html(response)
+										$('.spinner').hide()
+									})
+								}
+							}
+						}
+					}
+				]
+			})
+		})

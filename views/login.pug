@@ -1,0 +1,28 @@
+extends layout.pug
+
+block content
+	link(href='/css/login.css', rel='stylesheet')
+	script(type='text/javascript', src='http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js')
+	script(type='text/javascript', src='http://ajax.microsoft.com/ajax/jquery.validate/1.5.5/jquery.validate.min.js')
+
+	div(align='center')
+		form#formLogin(action='/login', method='post')
+			.ContenedorForm
+				.Logo(align='center')
+					img(src='/img/SSIS.png', width='380', height='100')
+				br
+				h2 Iniciar Sesión
+				label(for="Username") Nombre de Usuario
+				br
+				input#Username(type="text", name="txtUser", value=value)
+				br
+				br
+				label(for="Password") Contraseña
+				br
+				input#Password(type="Password", name="txtPassword")
+				br
+				br
+				label
+				input#Order.button(type="submit", value="Iniciar Sesión")
+				#Message.Message
+					p= message

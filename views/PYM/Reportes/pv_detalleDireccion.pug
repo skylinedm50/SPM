@@ -1,0 +1,821 @@
+header.major
+	h3#tituloDetalleDireccion
+#dgdDetalleDireccion.margin-bottom
+#chtResumenDireccion.margin-bottom
+script.
+
+	var actividades = !{JSON.stringify(actividades)},
+		chtResumenDireccion = [{direccion: $('#frmFiltros').dxForm('instance').getEditor('nombre_direccion').option('text'), programado: 0, ejecutado: 0}],
+		resumenMes,
+		totalProgAct = 0,
+		totalEjecAct = 0,
+		porcentajes = new Array()
+	
+	resumenOperaciones = !{JSON.stringify(resumenOperaciones)}
+	mes = !{JSON.stringify(mes)}
+	chtResumenOperaciones.length = 0
+	totalProgOpe = 0
+	totalEjecOpe = 0
+
+	for(let i = 0, len = actividades.length; i < len; i++) {
+		chtResumenDireccion[0].programado += actividades[i].programado
+		chtResumenDireccion[0].ejecutado += actividades[i].ejecutado
+
+		actividades[i].porcentaje = ( (actividades[i].ejecutado * 100) / actividades[i].programado )
+		totalProgAct += actividades[i].programado
+		totalEjecAct += actividades[i].ejecutado
+	}
+
+	for(let i = 0, len = resumenOperaciones.length; i < len; i++) {
+
+		chtResumenOperaciones.push({
+			direccion: resumenOperaciones[i].nombre_direccion,
+			programado: resumenOperaciones[i].programado,
+			ejecutado: resumenOperaciones[i].ejecutado
+		})
+
+		resumenOperaciones[i].por_ejecutar = resumenOperaciones[i].programado - resumenOperaciones[i].ejecutado
+		resumenOperaciones[i].porcentaje = ( (resumenOperaciones[i].ejecutado * 100) / resumenOperaciones[i].programado )
+		totalProgOpe += resumenOperaciones[i].programado
+		totalEjecOpe += resumenOperaciones[i].ejecutado
+	}
+
+	$( () => {
+
+		$('#tituloDetalleDireccion').text('Programado y Ejecutado acumulado al Mes de ' + mes + ', ' + $('#frmFiltros').dxForm('instance').getEditor('nombre_direccion').option('text'))
+		$('#tituloResumenOperacion').text('Programado y Ejecutado Mes de ' + mes)
+
+		$('#chtResumenDireccion').dxChart({
+			dataSource: chtResumenDireccion,
+			commonSeriesSettings: {
+				argumentField: 'direccion',
+				type: 'bar',
+				hoverMode: 'allArgumentPoints',
+				selectionMode: 'allArgumentPoints',
+				label: {
+					visible: true,
+					format: {
+						type: 'fixedPoint',
+						precision: 0
+					},
+					customizeText: (pointinfo) => {
+						return '$' + pointinfo.valueText
+					}
+				}
+			},
+			series: [
+				{ valueField: 'programado', name: 'Programado' },
+				{ valueField: 'ejecutado', name: 'Ejecutado' }
+			],
+			title: 'Programado y Ejecutado acumulado al Mes de ' + mes + ', ' + $('#frmFiltros').dxForm('instance').getEditor('nombre_direccion').option('text'),
+			legend: {
+				verticalAlignment: 'bottom',
+				horizontalAlignment: 'center'
+			},
+			'export': {
+				enabled: true
+			},
+			tooltip: {
+				enabled: true,
+				customizeTooltip: (args) => {
+
+					let valueText = '$' + args.originalValue.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+						porcentaje = ( (totalEjecAct * 100) / totalProgAct ),
+						html = `<div class="currency">${args.argument} | ${args.seriesName}</div><div class="currency">${valueText}</div><div class="currency">% de ejecución: ${porcentaje.toFixed(2)}</div>`
+
+					return {
+						html: html
+					}
+				}
+			},
+			commonAxisSettings: {
+				label: {
+					alignment: 'center',
+					displayMode: 'stagger',
+					staggeringSpacing: 2
+				}
+			},
+			width: $('section').width(),
+			valueAxis: {
+				visible: true,
+				autoBreaksEnabled: true,
+				maxAutoBreakCount: 3
+			},
+			onPointClick: (e) => {
+				
+				let chart = $('#chtResumenDireccion').dxChart('instance')
+
+				resumenMes = [
+					{mes: 'ENERO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'FEBRERO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'MARZO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'ABRIL', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'MAYO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'JUNIO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'JULIO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'AGOSTO', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'SEPTIEMBRE', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'OCTUBRE', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'NOVIEMBRE', programado: 0, ejecutado: 0, porcentaje: 0},
+					{mes: 'DICIEMBRE', programado: 0, ejecutado: 0, porcentaje: 0},
+				]
+				
+				for (let i = 0, len = actividades.length; i < len; i++) {
+
+					resumenMes[0].programado += actividades[i].prog_01
+					resumenMes[0].ejecutado += actividades[i].ejec_01
+
+					resumenMes[1].programado += actividades[i].prog_02
+					resumenMes[1].ejecutado += actividades[i].ejec_02
+
+					resumenMes[2].programado += actividades[i].prog_03
+					resumenMes[2].ejecutado += actividades[i].ejec_03
+
+					resumenMes[3].programado += actividades[i].prog_04
+					resumenMes[3].ejecutado += actividades[i].ejec_04
+
+					resumenMes[4].programado += actividades[i].prog_05
+					resumenMes[4].ejecutado += actividades[i].ejec_05
+
+					resumenMes[5].programado += actividades[i].prog_06
+					resumenMes[5].ejecutado += actividades[i].ejec_06
+
+					resumenMes[6].programado += actividades[i].prog_07
+					resumenMes[6].ejecutado += actividades[i].ejec_07
+
+					resumenMes[7].programado += actividades[i].prog_08
+					resumenMes[7].ejecutado += actividades[i].ejec_08
+
+					resumenMes[8].programado += actividades[i].prog_09
+					resumenMes[8].ejecutado += actividades[i].ejec_09
+
+					resumenMes[9].programado += actividades[i].prog_10
+					resumenMes[9].ejecutado += actividades[i].ejec_10
+
+					resumenMes[10].programado += actividades[i].prog_11
+					resumenMes[10].ejecutado += actividades[i].ejec_11
+
+					resumenMes[11].programado += actividades[i].prog_12
+					resumenMes[11].ejecutado += actividades[i].ejec_12
+				}
+
+				chart.option({
+					dataSource: resumenMes,
+					commonSeriesSettings: {
+						argumentField: 'mes',
+						type: 'bar',
+						hoverMode: 'allArgumentPoints',
+						selectionMode: 'allArgumentPoints',
+						label: {
+							visible: false,
+						}
+					},
+					series: [
+						{ valueField: 'programado', name: 'Programado' },
+						{
+							type: 'line',
+							valueField: 'ejecutado',
+							name: 'Ejecutado',
+						}
+					],
+					tooltip: {
+						customizeTooltip: (args) => {
+
+							let valueText = '$' + args.originalValue.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+							html
+
+							for (let i = 0, len = resumenMes.length; i < len; i++) {
+								if (resumenMes[i].mes === args.argument) {
+
+									let porcentaje = 0
+
+									if (resumenMes[i].programado > 0)
+										porcentaje = ( (resumenMes[i].ejecutado * 100) / resumenMes[i].programado )
+
+									html = `<div class="currency">${args.argument} | ${args.seriesName}</div><div class="currency">${valueText}</div><div class="currency">% de ejecución: ${porcentaje.toFixed(2)}</div>`
+									break
+								}
+							}
+
+							return {
+								html: html
+							}
+						}
+					},
+					valueAxis: {
+						visible: true,
+						autoBreaksEnabled: true,
+						maxAutoBreakCount: 3
+					}
+				})
+			}
+		})
+
+		$('#dgdDetalleDireccion').dxDataGrid({
+			dataSource: actividades,
+			allowColumnReordering: true,
+			allowColumnResizing: true,
+			showColumnLines: true,
+			showRowLines: true,
+			rowAlternationEnabled: false,
+			showBorders: true,
+			columnAutoWidth: true,
+			columnFixing: {
+				enabled: true
+			},
+			'export': {
+				enabled: true,
+				fileName: 'Listado de Actividades de ' + $('#frmFiltros').dxForm('instance').getEditor('nombre_direccion').option('text')
+			},
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			scrolling: {
+				useNative: true
+			},
+			width: $('section').width(),
+			wordWrapEnabled: true,
+			columns: [
+				{//nombre actividad
+					dataField: 'nombre_actividad',
+					caption: 'ACTIVIDAD',
+					fixed: true,
+					width: 400
+				},
+				{//presupuesto
+					caption: 'PRESUPUESTO',
+					fixed: true,
+					columns: [
+						{//programado
+							dataField: 'programado',
+							caption: 'PROGRAMADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//ejecutado
+							dataField: 'ejecutado',
+							caption: 'EJECUTADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//diferencia
+							dataField: 'diferencia',
+							caption: 'POR EJECUTAR',
+							calculateDisplayValue: (data) => {
+								return '$' + data.diferencia.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//porcentaje
+							dataField: 'porcentaje',
+							caption: '% EJECUCIÓN',
+							cellTemplate: (container, options) => {
+
+								let porc_ejecucion = 0,
+									clase
+
+								if (options.data.programado > 0)
+									porc_ejecucion = ( (options.data.ejecutado * 100) / options.data.programado ).toFixed(0)
+								
+								if (options.data.programado == 0 && options.data.ejecutado > 0)
+									porc_ejecucion = ( (options.data.ejecutado * 100) / 1 ).toFixed(0)
+								
+								//porcentajes.push( (options.data.ejecutado * 100) / options.data.programado )
+								porcentajes.push({
+									cod_actividad: options.data.cod_actividad,
+									nombre_actividad: options.data.nombre_actividad,
+									porcentaje: (options.data.ejecutado * 100) / options.data.programado
+								})
+								
+								if (porc_ejecucion >= 100) {
+									clase = 'azul'
+								} else if (porc_ejecucion >= 80) {
+									clase = 'verde'
+								} else if (porc_ejecucion >= 60) {
+									clase = 'amarillo'
+								} else if (porc_ejecucion == 0) {
+									clase = 'cero'
+								} else {
+									clase = 'rojo'
+								}
+
+								$('<div>')
+									.append( $('<div>', {'class': 'text', 'id': 'textRM' + options.data.cod_actividad}) )
+									.append( $('<div>', {'id': 'divRigthRM' + options.data.cod_actividad}) )
+									.appendTo(container)
+
+								$('#divRigthRM' + options.data.cod_actividad)
+									.append( $('<div>', {'class': clase, 'id': 'rigthRM' + options.data.cod_actividad}) )
+
+								if (options.data.programado > 0 || (options.data.programado == 0 && options.data.ejecutado > 0) ) {
+									$('#rigthRM' + options.data.cod_actividad).css('width', '100%')
+									$('#textRM' + options.data.cod_actividad).append( porc_ejecucion + '%' )
+									$('#divRigthRM' + options.data.cod_actividad).css('margin', '-7px -7px -7px -7px')
+								}
+
+							},
+							width: 120
+						}
+					]
+				},
+				{//fecha inicio
+					dataField: 'fecha_inicio_actividad',
+					caption: 'FECHA INICIO',
+					fixed: true
+				},
+				{//fecha fin
+					dataField: 'fecha_fin_actividad',
+					caption: 'FECHA FIN',
+					fixed: true
+				},
+				{//nro operación
+					dataField: 'nro_operacion',
+					caption: 'OPERACIÓN',
+					fixed: true
+				},
+				{//ENERO
+					caption: 'ENERO',
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_01',
+						calculateDisplayValue: (data) => {
+							return '$' + data.prog_01.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_01',
+						calculateDisplayValue: (data) => {
+							return '$' + data.ejec_01.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					}]
+				},
+				{//FEBRERO
+					caption: 'FEBRERO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_02',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_02.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_02',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_02.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//MARZO
+					caption: 'MARZO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_03',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_03.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_03',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_03.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//ABRIL
+					caption: 'ABRIL',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_04',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_04.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_04',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_04.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//MAYO
+					caption: 'MAYO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_05',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_05.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_05',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_05.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//JUNIO
+					caption: 'JUNIO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_06',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_06.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_06',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_06.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//JULIO
+					caption: 'JULIO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_07',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_07.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_07',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_07.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//AGOSTO
+					caption: 'AGOSTO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_08',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_08.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_08',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_08.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//SEPTIEMBRE
+					caption: 'SEPTIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_09',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_09.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_09',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_09.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//OCTUBRE
+					caption: 'OCTUBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_10',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_10.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_10',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_10.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//NOVIEMBRE
+					caption: 'NOVIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_11',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_11.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_11',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_11.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//DICIEMBRE
+					caption: 'DICIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_12',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_12.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_12',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_12.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				}
+			],
+			summary: {
+				totalItems: [
+					{
+						column: 'indicador_avance_actividad',
+						summaryType: 'min',
+						customizeText: (data) => {
+							return 'TOTAL'
+						}
+					},
+					{
+						column: 'programado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejecutado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'diferencia',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'porcentaje',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return ( (totalEjecAct * 100) / totalProgAct ).toFixed(2) + '%'
+						}
+					},
+					{
+						column: 'prog_01',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_01',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_02',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_02',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_03',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_03',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_04',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_04',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_05',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_05',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_06',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_06',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_07',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_07',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_08',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_08',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_09',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_09',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_10',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_10',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_11',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_11',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_12',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_12',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					}
+				]
+			},
+			onContentReady: () => {
+				for(let i = 0, len = porcentajes.length; i < len; i++) {
+
+					try {
+
+						let porc = porcentajes[i].porcentaje,
+							height = $("[aria-label='Columna ACTIVIDAD, Valor " + porcentajes[i].nombre_actividad + "'").css('height')
+						
+						height = Number( height.substring(0,2) ) + 15
+
+						$('#rigthRM' + porcentajes[i].cod_actividad).css('height', height.toString() + 'px' )
+
+					} catch (e) {
+						console.log('Fallo con la actividad: código ' + porcentajes[i].cod_actividad + ' Nombre ' + porcentajes[i].nombre_actividad)
+					}				
+
+				}
+			}
+		})
+
+		$("#chtResumenOperaciones").dxChart("instance").option('dataSource', chtResumenOperaciones)
+		$("#chtResumenOperaciones").dxChart("instance").option('title', 'Programado y Ejecutado Mes de ' + mes)
+		$("#chtResumenOperaciones").dxChart("instance").render()
+
+		datagrid.option('columns[0].caption', 'Indicador del Mes de ' + mes)
+		datagrid.option('dataSource', resumenOperaciones)
+
+		/*
+		setTimeout( () => {
+
+			for(let i = 0, len = porcentajes.length; i < len; i++) {
+
+				//debugger
+
+				let porc = porcentajes[i].porcentaje,
+					height = $("[aria-label='Columna ACTIVIDAD, Valor " + porcentajes[i].nombre_actividad + "'").css('height')
+				
+				height = Number( height.substring(0,2) ) + 15
+
+				$('#rigthRM' + porcentajes[i].cod_actividad).css('height', height.toString() + 'px' )
+
+			}
+
+		},1000)
+		*/
+	})

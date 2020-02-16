@@ -1,0 +1,205 @@
+doctype html
+html
+	head
+		meta(charset="utf-8")
+		meta(name="viewport", content="width=device-width,initial-scale=1.0, maximum-scale=1.0")
+		title= title
+		- var content = description
+		meta(name="description", content=content)
+
+		script(src='/js/jquery-3.1.0.min.js')
+		link(rel='stylesheet', type="text/css", href='/css/dx.spa.css')
+		link(rel='stylesheet', type="text/css", href='/css/dx.common.css')
+		link(rel='stylesheet', type="text/css", href='/css/dx.ios7.default.css')
+		script(src='/js/cldr.min.js')
+		script(src='/js/cldr/event.min.js')
+		script(src='/js/cldr/supplemental.min.js')
+		script(src='/js/cldr/unresolved.min.js')
+		script(src='/js/globalize.min.js')
+		script(src='/js/globalize/message.min.js')
+		script(src='/js/globalize/number.min.js')
+		script(src='/js/globalize/currency.min.js')
+		script(src='/js/globalize/date.min.js')
+		script(src='/js/jszip.min.js')
+		script(src='/js/dx.all.js')
+		script(src='/js/localization/dx.messages.es.js')
+
+		style.
+			body {
+				background-position: center center;
+				background-repeat: no-repeat;
+				background-image:url("../img/VidaMejorFondo_2.png");
+				background-image:url("../img/SPM_logo.png");
+				background-size: 80%;
+			}
+
+			html {
+				background-attachment: fixed;
+				background-image:url("../img/FondoModulos.png");
+				background-position: center center;
+				background-repeat: no-repeat;
+				background-size: cover;
+			}
+
+			img {
+				height: 27px;
+			}
+
+			.button {
+				width: 280px;
+				display: block;
+				margin: 20px auto;
+			}
+
+			.centrar, .img-container {
+				text-align: center;
+			}
+
+			.margin-bottom {
+				margin-bottom: 20px;
+			}
+
+			.text {
+				z-index: 2;
+				position: absolute;
+			}
+
+			.rigth {
+				height: 27px;
+				width: 0%;
+				background: #b1d8f5;
+				background: -moz-linear-gradient(left, #b1d8f5 0%, #bee4f8 65%, #c8eefb 79%, #fdffff 98%, #e6f8fd 100%);
+				background: -webkit-linear-gradient(left, #b1d8f5 0%,#bee4f8 65%,#c8eefb 79%,#fdffff 98%,#e6f8fd 100%);
+				background: linear-gradient(to right, #b1d8f5 0%,#bee4f8 65%,#c8eefb 79%,#fdffff 98%,#e6f8fd 100%);
+				filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b1d8f5', endColorstr='#e6f8fd',GradientType=1 );
+				z-index: 1;
+			}
+
+			.btn {
+				display: inline-block;
+				padding: 6px 12px;
+				margin-bottom: 0;
+				font-size: 14px;
+				font-weight: 400;
+				line-height: 1.42857143;
+				text-align: center;
+				white-space: nowrap;
+				vertical-align: middle;
+				-ms-touch-action: manipulation;
+				touch-action: manipulation;
+				cursor: pointer;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+				background-image: none;
+				border: 1px solid transparent;
+				/*border-radius: 4px;*/
+			}
+
+			.btn-primary {
+				color: #fff;
+				background-color: #337ab7;
+				border-color: #2e6da4;
+			}
+
+			.btn-block {
+				display: block;
+				width: 100%;
+			}
+
+			.btn-lg {
+				padding: 10px 16px;
+				font-size: 18px;
+				line-height: 1.3333333;
+				/*border-radius: 6px;*/
+			}
+
+	body.dx-viewport
+		#action-sheet
+		button.btn.btn-primary.btn-block REPORTES
+		#divReporte
+		include spinner.pug
+
+		script.
+
+			$.when(
+				$.getJSON('/js/cldr/main/es-HN/ca-gregorian.json'),
+				$.getJSON('/js/cldr/main/es-HN/numbers.json'),
+				$.getJSON('/js/cldr/main/es-HN/currencies.json'),
+				$.getJSON('/js/cldr/supplemental/likelySubtags.json'),
+				$.getJSON('/js/cldr/supplemental/timeData.json'),
+				$.getJSON('/js/cldr/supplemental/weekData.json'),
+				$.getJSON('/js/cldr/supplemental/currencyData.json'),
+				$.getJSON('/js/cldr/supplemental/numberingSystems.json')
+			).then(function() {
+				//The following code converts the got results into an array
+				return [].slice.apply( arguments, [0] ).map(function( result ) {
+					return result[ 0 ];
+				});
+			}).then(
+				Globalize.load //loads data held in each array item to Globalize
+			).then(function() {
+				DevExpress.localization.locale('es')
+				Globalize.locale('es-HN')
+
+				var reportes = [
+						{ text: 'Resumen del Programa' },
+						{ text: 'Programado y Ejecutado Mensual' },
+						{ text: 'Resumen Mensual' },
+						{ text: 'Acumulado Mensual' },
+						{ text: 'Presupuesto en Riesgo' }
+					]
+
+				var actionSheet = $("#action-sheet").dxActionSheet({
+					dataSource: reportes,
+					title: 'SELECCIONA UN REPORTES',
+					showTitle: false,
+					onItemClick: (value) => {
+
+						let url,
+							data = {
+								json: false
+							}
+
+						switch(value.itemData.text) {
+							case 'Resumen del Programa':
+								url = '/pym/reportes/mResumenPrograma'
+								break
+							case 'Programado y Ejecutado Mensual':
+								url = '/pym/reportes/mProgEjecMensual'
+								break
+							case 'Resumen Mensual':
+								url = '/pym/reportes/mResumenMensual'
+								break
+							case 'Acumulado Mensual':
+								url = '/pym/reportes/mAcumuladoMensual'
+								break
+							case 'Presupuesto en Riesgo':
+								url = '/pym/reportes/mPresupuestoRiesgo'
+								break
+							default:
+								break
+						}
+
+						$.ajax({
+							type: 'POST',
+							url: url,
+							data: data,
+							dataType: 'html',
+							beforeSend: () => {
+								$('.spinner').show()
+							}
+						})
+						.done( (response) => {
+							$('body').css('background-image','none')
+							$('#divReporte').html(response)
+							$('.spinner').hide()
+						})
+					}
+				}).dxActionSheet('instance')
+				
+				$('button').click( () => {
+					actionSheet.option('visible', true)
+				})
+			})

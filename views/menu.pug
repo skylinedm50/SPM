@@ -1,0 +1,25 @@
+nav#menu
+		header.major
+			h2 Menu 
+		if menuPrincipal
+			ul
+				for mod in modulos
+					li
+						- var url = mod.url_modulo
+						a(href=url)= mod.nombre_modulo
+		else
+			ul
+				li
+					a(href='/inicioNOG') MENU PRINCIPAL 
+				for sub in subModulos
+					li
+						span.opener= sub.desc_sub_modulo
+						ul
+							for form in formularios
+								if form.cod_sub_modulo == sub.cod_sub_modulo
+									li
+										- var url = form.url_formulario
+										a(href=url)= form.desc_formulario
+footer#footer
+	p.copyright
+		| © Untitled. All rights reserved.

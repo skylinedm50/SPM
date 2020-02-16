@@ -1,0 +1,35 @@
+doctype html
+html
+	head
+		meta(charset="utf-8")
+		meta(name="viewport", content="width=device-width,initial-scale=1")
+		title= title
+		- var content = description
+		meta(name="description", content=content)
+		script(src='/js/jquery.min.js')
+		script(src='/js/skel.min.js')
+		script(src='/js/util.js')
+		script(src='/js/main.js')
+		script(src='/js/jquery-3.1.0.min.js')
+
+
+		script(src='/js/jquery-3.1.0.min.js')
+		link(rel='stylesheet', type="text/css", href='/css/dx.common.css')
+		link(rel='dx-theme', data-theme='generic.light', href='/css/dx.light.css')
+		script(src='/js/cldr.min.js')
+		script(src='/js/cldr/event.min.js')
+		script(src='/js/cldr/supplemental.min.js')
+		script(src='/js/cldr/unresolved.min.js')
+		script(src='/js/globalize.min.js')
+		script(src='/js/globalize/message.min.js')
+		script(src='/js/globalize/number.min.js')
+		script(src='/js/globalize/currency.min.js')
+		script(src='/js/globalize/date.min.js')
+		script(src='/js/jszip.min.js')
+		script(src='/js/dx.all.js')
+		script(src='/js/localization/dx.messages.es.js')
+		script(src='/js/globalize/moment.min.js')
+
+		
+	body
+		block content

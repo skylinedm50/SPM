@@ -1,0 +1,362 @@
+.dx-fieldset
+	.dx-fieldset-header Resumen Mensual
+	.dx-field
+		.dx-field-label Año
+		.dx-field-value
+			#slcAnos
+	.dx-field
+		.dx-field-label Mes
+		.dx-field-value
+			#slcMeses
+#dgdResumenMes.margin-bottom
+#chtResumenMes
+
+script.
+
+	var resumenMes = !{JSON.stringify(resumenMes)},
+		años = [2017, 2018, 2019, 2020],
+		meses = [
+			{cod_mes: 1, desc_mes: 'ENERO'},
+			{cod_mes: 2, desc_mes: 'FEBRERO'},
+			{cod_mes: 3, desc_mes: 'MARZO'},
+			{cod_mes: 4, desc_mes: 'ABRIL'},
+			{cod_mes: 5, desc_mes: 'MAYO'},
+			{cod_mes: 6, desc_mes: 'JUNIO'},
+			{cod_mes: 7, desc_mes: 'JULIO'},
+			{cod_mes: 8, desc_mes: 'AGOSTO'},
+			{cod_mes: 9, desc_mes: 'SEPTIEMBRE'},
+			{cod_mes: 10, desc_mes: 'OCTUBRE'},
+			{cod_mes: 11, desc_mes: 'NOVIEMBRE'},
+			{cod_mes: 12, desc_mes: 'DICIEMBRE'},
+		],
+		mes,
+		totalProg = 0,
+		totalEjec = 0
+
+	for (let i = 0, month = new Date().getMonth(); i < 12; i++) {
+
+		if (month == 0) {
+			mes = 'DICIEMBRE'
+			break
+		} else if (meses[i].cod_mes == month) {
+			mes = meses[i].desc_mes
+			break
+		}
+	}
+
+	for (let i = 0, len = resumenMes.length; i < len; i++) {
+		totalProg += resumenMes[i].programado
+		totalEjec += resumenMes[i].ejecutado
+	}
+
+	function obtenerResumenMes(año, mes) {
+
+		$.ajax({
+			type: 'POST',
+			url: '/pym/reportes/mResumenMensual',
+			data: {
+				año: año,
+				mes: mes,
+				json: true
+			},
+			dataType: 'json',
+			encode: true,
+			beforeSend: () => {
+				$('.spinner').show()
+			}
+		})
+		.done( (response) => {
+
+			mes = $('#slcMeses').dxSelectBox('instance').option('text')
+			totalProg = 0
+			totalEjec = 0
+
+			for (let i = 0, len = response.length; i < len; i++) {
+				totalProg += response[i].programado
+				totalEjec += response[i].ejecutado
+			}
+
+			dataGrid.option('dataSource', response)
+			dataGrid.option('columns[0].caption', 'Indicador del Mes de ' + mes)
+			//chart.option('dataSource', response)
+			//chart.option('title.text', 'Programado y Ejecutado, ' + resumen[0].descripcion)
+			//chart.render()
+			chart.option({
+				dataSource: response,
+				tooltip: {
+					enabled: true,
+					customizeTooltip: (args) => {
+						
+						let valueText = '$' + args.originalValue.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+							html
+
+						for(let i = 0, len = response.length; i < len; i++) {
+							if (response[i].nombre_direccion === args.argument) {
+								let porcentaje = ( (response[i].ejecutado * 100) / response[i].programado )
+
+								html = `<div class="centrar">${args.argument} | ${args.seriesName}</div><div class="centrar">${valueText}</div><div class="centrar">% de ejecución: ${porcentaje.toFixed(2)}%</div>`
+								break
+							}
+						}
+
+						return {
+							html: html
+						}
+					}
+				}
+			})
+			$('.spinner').hide()
+		})
+	}
+
+	$( () => {
+
+		$("#slcAnos").dxSelectBox({
+			items: años,
+			placeholder: 'Seleccione un año',
+			onValueChanged: (data) => {
+
+				let mes = $("#slcMeses").dxSelectBox("instance").option('value')
+				if (mes != null)
+					obtenerResumenMes(data.value, mes)
+
+			}
+		})
+
+		$("#slcMeses").dxSelectBox({
+			dataSource: meses,
+			placeholder: 'Seleccione un mes',
+			displayExpr: "desc_mes",
+			valueExpr: "cod_mes",
+			onValueChanged: (data) => {
+
+				let año = $("#slcAnos").dxSelectBox("instance").option('value')
+				if (año != null)
+					obtenerResumenMes(año, data.value)
+
+			}
+		})
+
+		dataGrid = $('#dgdResumenMes').dxDataGrid({
+			dataSource: resumenMes,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			columnAutoWidth: true,
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			columnHidingEnabled: true,
+			wordWrapEnabled: true,
+			/*
+			allowColumnReordering: true,
+			allowColumnResizing: true,
+			width: $('section').width(),
+			'export': {
+				enabled: true,
+				fileName: 'POA_PEP_' + $('#frmFiltros').dxForm('instance').getEditor('cod_operacion').option('text') + '_AÑO_' + $('#frmFiltros').dxForm('instance').getEditor('año_actividad').option('text')
+			},
+			columnFixing: { 
+				enabled: true
+			},
+			scrolling: {
+				useNative: true
+			},
+			*/
+			columns: [
+				{
+					caption: 'Indicador del Mes de ' + mes,
+					cellTemplate: (container, options) => {
+
+						let src,
+							porcentaje = ( (options.data.ejecutado * 100) / options.data.programado)
+						
+						if (porcentaje >= 80) {
+							src = '/img/success.png'
+						} else if (porcentaje >= 60) {
+							src = '/img/warning.png'
+						} else {
+							src = '/img/error.png'
+						}
+						
+						$('<div>', { 'class': 'img-container' })
+							.append($('<img>', { 'src': src }))
+							.appendTo(container)
+						
+					}
+				},
+				{
+					dataField: 'nombre_direccion',
+					caption: 'DIRECCIÓN'
+				},
+				{//PRESUPUESTO
+					caption: 'PRESUPUESTO',
+					columns: [
+						{
+							dataField: 'programado',
+							caption: 'PROGRAMADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							dataField: 'ejecutado',
+							caption: 'EJECUTADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						/*
+						{
+							dataField: 'por_ejecutar',
+							caption: 'POR EJECUTAR',
+							calculateDisplayValue: (data) => {
+								return '$' + (data.programado - data.ejecutado).toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							dataField: 'porcentaje',
+							caption: '% EJECUCIÓN',
+							cellTemplate: (container, options) => {
+
+								let porc_ejecucion = 0
+
+								if (options.data.programado > 0)
+									porc_ejecucion = ( (options.data.ejecutado * 100) / options.data.programado ).toFixed(0)
+
+								$('<div>')
+									.append( $('<div>', {'class': 'text', 'id': 'text' + options.data.cod_direccion}) )
+									.append( $('<div>', {'id': 'divRigth' + options.data.cod_direccion}) )
+									.appendTo(container)
+								
+								$('#divRigth' + options.data.cod_direccion)
+									.append( $('<div>', {'class': 'rigth', 'id': 'rigth' + options.data.cod_direccion}) )
+								
+								$('#rigth' + options.data.cod_direccion).css({'width': porc_ejecucion + '%'})
+									$('#text' + options.data.cod_direccion).append( porc_ejecucion + '%' )
+							}
+						}
+						*/
+						{
+							dataField: 'porcentaje',
+							caption: '% Ejecución',
+							calculateDisplayValue: (data) => {
+								if (data.programado > 0) {
+									return ((data.ejecutado * 100) / data.programado ).toFixed(2) + '%'
+								} else {
+									return '0%'
+								}
+							}
+						}
+					]
+				}
+			],
+			summary: {
+				totalItems: [
+					{
+						column: 'nombre_direccion',
+						summaryType: 'min',
+						customizeText: (data) => {
+							return 'TOTAL'
+						}
+					},
+					{
+						column: 'programado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejecutado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'porcentaje',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return ( (totalEjec * 100) / totalProg ).toFixed(2) + '%'
+						}
+					}
+				]
+			}
+		}).dxDataGrid("instance")
+
+		chart = $('#chtResumenMes').dxChart({
+			dataSource: resumenMes,
+			commonSeriesSettings: {
+				argumentField: 'nombre_direccion',
+				type: 'bar',
+				hoverMode: 'allArgumentPoints',
+				selectionMode: 'allArgumentPoints',
+				label: {
+					visible: false,
+					format: {
+						type: 'fixedPoint',
+						precision: 0
+					},
+					customizeText: (pointinfo) => {
+						return '$' + pointinfo.valueText
+					}
+				}
+			},
+			series: [
+				{ valueField: 'programado', name: 'Programado' },
+				{
+					type: 'line',
+					valueField: 'ejecutado',
+					name: 'Ejecutado',
+				}
+			],
+			/*
+			title: {
+				text: 'Programado y ejecutado por el Programa Vida Mejor',
+				font: {
+					size: 25,
+					weight: 400
+				}
+			},
+			*/
+			legend: {
+				verticalAlignment: 'bottom',
+				horizontalAlignment: 'center'
+			},
+			tooltip: {
+				enabled: true,
+				customizeTooltip: (args) => {
+					
+					let valueText = '$' + args.originalValue.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+						html
+
+					for(let i = 0, len = resumenMes.length; i < len; i++) {
+						if (resumenMes[i].nombre_direccion === args.argument) {
+							let porcentaje = ( (resumenMes[i].ejecutado * 100) / resumenMes[i].programado )
+							html = `<div class="centrar">${args.argument} | ${args.seriesName}</div><div class="centrar">${valueText}</div><div class="centrar">% de ejecución: ${porcentaje.toFixed(2)}%</div>`
+							break
+						}
+					}
+
+					return {
+						html: html
+					}
+				}
+			},
+			commonAxisSettings: {
+				label: {
+					alignment: 'center',
+					displayMode: 'stagger',
+					staggeringSpacing: 1
+				}
+			}
+		}).dxChart("instance")
+
+	})

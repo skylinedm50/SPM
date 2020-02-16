@@ -1,0 +1,811 @@
+extends ../layout.pug
+
+block head
+	script(src="/js/PYM/shared.js")
+	style.
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+		.centrar {
+			text-align: center;
+		}
+
+		.internal-grid-container {
+			padding: 10px 0 10px 0;
+		}
+		.search-title {
+			margin-bottom: 0.5em;
+			color: #3d4449;
+			font-weight: 600;
+			color: #3d4449;
+			font-size: 0.9em;   		 
+		}
+		#table-wrapper {
+			display: flex;			
+		}
+		#porcentaje-vencido{
+			text-align: end;
+		}
+		table{
+			margin: 0 0 0 0;
+		}
+		#summary{			
+			color: rgba(51, 51, 51, 0.7);
+			font-weight: bold;
+			vertical-align: middle;
+			padding: 0.75em 2em;
+		}
+		.table-row{
+			padding: 0.75em 2.4em;
+		}
+		
+
+block content
+	header.major
+		h2 REPORTE DE ACTIVIDADES VENCIDAS
+	#frmFiltros.margin-bottom
+	header.major
+		h3#tituloResumen
+	//- #btnExportarResumen.margin-bottom
+	#dgdRiesgo.margin-bottom
+	#tablaVencidas.margin-bottom
+	#table-wrapper
+		table#desc
+			tr#summary
+				td(width='25%').table-row TOTAL PRESUPUESTO ACTIVIDADES VENCIDAS
+				td(width='25%').table-row#total-actividades-vencidas 
+				td(width='25%').table-row % ACTIVIDADES VENCIDAS DEL PRESUPUESTO TOTAL
+				td(width='25%').table-row#porcentaje-vencido 
+	#tablaResumen.margin-bottom
+	#chtRiesgo
+
+block scripts
+	script.
+		var organismos = !{JSON.stringify(organismos)},
+			operaciones = !{JSON.stringify(operaciones)},
+			dependencias = !{JSON.stringify(dependencias)},
+			dependenciasRiesgo = !{JSON.stringify(dependenciasRiesgo)},
+			totales = {programado: 0, riesgo: 0},
+			mes = !{JSON.stringify(mes)},
+			//- Relacion organismo operacion - numero de operacion, luego se le agregan demas valores
+			organismoOperacion = !{JSON.stringify(organismoOperacion)},
+			//- Todos los organimos, operaciones, actividades en la bd
+			dataOrganismoActividades = !{JSON.stringify(dataOrganismoActividades)},
+			//- Informacion de actividades vencidas 
+			dataActividadesVencidas = !{JSON.stringify(dataActividadesVencidas)},
+			//- Valor del presupuesto anual, que es igual a la suma d elo programado en el año actual
+			valorPresupuestoAnual = !{JSON.stringify(valorPresupuestoAnual)},
+			dataGrid,
+			//- chart,
+			dataTable,
+			filteredTable,
+			tablaPrincipalOrganismo
+
+			//- var tablaPrincipalOrganismo = organismoOperacion.slice();
+			var sinActividadesEnCero = [];
+
+		(function () {
+			let totalVencido = 0;
+			let porcentajeVencidasDelTotal = 0;
+
+			//- Se agrega el valor todos para luego poder reestablecer todos los campos en la tabla.
+			nuevoValorOrganismo = {abrev_organismo_financiero: 'Todos'}
+			nuevoValorOperacion = {nro_operacion: 'Todos'}
+			nuevoValorDependencia = {nombre_direccion: 'Todos'}
+			organismos.push(nuevoValorOrganismo);
+			operaciones.push(nuevoValorOperacion);
+			dependencias.push(nuevoValorDependencia);
+			
+			//- itera en organismoOperacion para luego encontrar montos que pertenecen a esa operacion y sumarlos como monto programado
+			for(let i = 0; i < organismoOperacion.length; i++){
+				let montoProgramadoVencido = 0;
+				let actividadesVencidas = [];
+				for(let j = 0; j < dataActividadesVencidas.length; j++){
+					if(organismoOperacion[i].cod_operacion ===  dataActividadesVencidas[j].cod_operacion){
+						montoProgramadoVencido += dataActividadesVencidas[j].monto_programado_vencido;
+					}
+				}
+				//- Inserta las actividades vencidas que coinciden con las operciones
+				for(let k = 0; k < dataActividadesVencidas.length; k++){
+					//- Suma un dia y le da un formato para que pueda aparecer con la ficha correcta en el grid
+					dataActividadesVencidas[k].fecha_inicio_actividad=  addDays(new Date(dataActividadesVencidas[k].fecha_inicio_actividad), 1)
+					dataActividadesVencidas[k].fecha_inicio_actividad = formatDate(new Date(dataActividadesVencidas[k].fecha_inicio_actividad))
+					dataActividadesVencidas[k].fecha_fin_actividad=  addDays(new Date(dataActividadesVencidas[k].fecha_fin_actividad), 1)
+					dataActividadesVencidas[k].fecha_fin_actividad = formatDate(new Date(dataActividadesVencidas[k].fecha_fin_actividad))
+					if(organismoOperacion[i].nro_operacion === dataActividadesVencidas[k].nro_operacion){
+						actividadesVencidas.push(dataActividadesVencidas[k]);
+					}
+					if(organismoOperacion[i].abrev_organismo_financiero !== "BM"){
+						array = ordenarActividades(actividadesVencidas);
+						for (let i = 0, len = actividadesVencidas.length; i < len; i++) {
+							for (let j = 0, len2 = array.length; j < len2; j++) {
+								if (actividadesVencidas[i].nro_actividad == array[j][1]) {
+									actividadesVencidas[i].nro_orden_actividad = array[j][0]
+									break
+								}
+							}					
+						}						
+					}
+				}
+				organismoOperacion[i].monto_pago_vencido = montoProgramadoVencido;
+				organismoOperacion[i].actividades_vencidas = actividadesVencidas;
+				organismoOperacion[i].porcentaje_presupuesto = 0;
+
+				totalVencido += organismoOperacion[i].monto_pago_vencido;						
+			}
+			
+			//- Estableciendo el porcentaje del presupuesto y filtrando organismos que no tienen actividades
+			for(let m = 0; m < organismoOperacion.length; m++){
+				let vencido = organismoOperacion[m].monto_pago_vencido;
+				organismoOperacion[m].porcentaje_presupuesto = (vencido/totalVencido);				
+				if(organismoOperacion[m].actividades_vencidas.length > 0){
+					sinActividadesEnCero.push(organismoOperacion[m])
+				}	
+			}	
+			
+			//- Segundo porcentaje que se muestra en el resumen
+			porcentajeVencidasDelTotal = (totalVencido/valorPresupuestoAnual[0].presupuesto_anual);
+
+			//- set de resumen actividades vencidas agregando a la pantalla y dandole formato
+			$('#total-actividades-vencidas').html(totalVencido);
+			$("#total-actividades-vencidas").text('$' + parseFloat(totalVencido, 10).toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,").toString());
+
+			//- set de resumen porcentaje vencidas agregando a la pantalla y dandole formato
+			$('#porcentaje-vencido').html(porcentajeVencidasDelTotal);
+			$('#porcentaje-vencido').text((porcentajeVencidasDelTotal*100).toFixed(2)+ '%');
+
+			filteredTable =  _.cloneDeep(sinActividadesEnCero);
+			tablaPrincipalOrganismo =  _.cloneDeep(sinActividadesEnCero);
+			
+			dataTable = sinActividadesEnCero;
+		}())
+
+		//- Ordena actividades segun el numero de la actividad y darle un valor nuevo a numero correlativo
+		//- segun el orden que debe de tener. Al no hacer esto existe un error por ejemplo saldria asi: 3.10,
+		//- 3.11, 3.12, 3.13, 3.2, 3.4, 3.5
+		function ordenarActividades (arregloActividades){
+			let globalArray = new Array()
+
+			//- Agrega todos los nro_actividadd a global array separados en arreglos y convierte de string a numero
+			for (let i = 0; i < arregloActividades.length; i++) {
+				globalArray.push(arregloActividades[i].nro_actividad.split('.'))
+				for (let j = 0; j < globalArray[i].length; j++) {
+					globalArray[i][j] = Number(globalArray[i][j])
+				}
+			}
+
+			for (let i = 1; i < globalArray.length; i++) {
+
+				for (let j = 0, len2 = globalArray.length - i; j < len2; j++) {
+
+					let flag
+
+					for (let k = 0, len3 = globalArray[j + 1].length; k < len3; k++) {
+						if (globalArray[j][k] > globalArray[j + 1][k] && globalArray[j].slice(0,k).join('.') == globalArray[j + 1].slice(0,k).join('.')) {
+							flag = true
+							break
+						}
+					}
+
+					if (flag) {
+						let aux = globalArray[j]
+						globalArray[j] = globalArray[j + 1]
+						globalArray[j + 1] = aux
+					}
+				}
+			}
+
+			for (let i = 0, len = globalArray.length; i < len; i++) {
+				globalArray[i] = [i + 1, globalArray[i].join('.')]
+			}
+
+			return globalArray
+		}
+		
+		function filtrarData() {
+			let filtros = {};
+			//- Agrega los valores a filtros si no se han seleccionado
+			filtros = $('#frmFiltros').dxForm('instance').option().formData;
+			if(!filtros.abrev_organismo_financiero){
+				filtros.abrev_organismo_financiero = ""
+			}
+			if(!filtros.nro_operacion){
+				filtros.nro_operacion = ""
+			}
+			if(!filtros.nombre_direccion){
+				filtros.nombre_direccion = ""
+			}
+
+			//- Cambia la etiqueta arriba del grid
+			let textBusqueda = "Presupuesto en Riesgo Programa Bono Vida Mejor por ";
+			if(filtros.abrev_organismo_financiero){
+				textBusqueda += filtros.abrev_organismo_financiero +  ', ' ;
+			}
+			if(filtros.nro_operacion){
+				textBusqueda += filtros.nro_operacion +  ', ' ;
+			}
+			if(filtros.nombre_direccion){
+				textBusqueda += filtros.nombre_direccion +  ', ' ;
+			}
+			textBusqueda += ' acumulado al Mes de ' + mes ;;
+			$('#tituloResumen').text(textBusqueda);
+			
+			//- Comienza a filtrar
+			//- Si se selecciona todos se establece el valor a devolver como el valor inicial
+			if(filtros.abrev_organismo_financiero === "" && filtros.nro_operacion === "" && filtros.nombre_direccion === "" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "Todos" && filtros.nro_operacion === "Todos" && filtros.nombre_direccion === "" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "Todos" && filtros.nro_operacion === "Todos" && filtros.nombre_direccion === "Todos" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "Todos" && filtros.nro_operacion === "" && filtros.nombre_direccion === "Todos" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "" && filtros.nro_operacion === "Todos" && filtros.nombre_direccion === "Todos" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === 'Todos' && filtros.nro_operacion === "" && filtros.nombre_direccion === "" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "" && filtros.nro_operacion === "Todos" && filtros.nombre_direccion === "" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else
+			if(filtros.abrev_organismo_financiero === "" && filtros.nro_operacion === "" && filtros.nombre_direccion === "Todos" ){
+				dataGrid.option('dataSource', sinActividadesEnCero)
+			}else{
+				var nuevaTabla = []; 
+				
+				for(let i = 0; i < dataTable.length; i++){
+					//- organismo y operacion son seleccionados
+					if(filtros.abrev_organismo_financiero === dataTable[i].abrev_organismo_financiero && filtros.nro_operacion === "Todos"){
+							nuevaTabla.push(dataTable[i]);
+					}	
+					if(filtros.abrev_organismo_financiero === "Todos" && filtros.nro_operacion === "" && filtros.nombre_direccion){
+						if( filtrarOrgOpePorDependencia(dataTable[i], filtros).actividades_vencidas.length > 0){
+							nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+						}
+					}	
+					if(filtros.abrev_organismo_financiero === "" && filtros.nro_operacion === "Todos" && filtros.nombre_direccion){
+						if( filtrarOrgOpePorDependencia(dataTable[i], filtros).actividades_vencidas.length > 0){
+							nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+						}
+					}	
+					if(filtros.abrev_organismo_financiero === dataTable[i].abrev_organismo_financiero && filtros.nro_operacion === dataTable[i].nro_operacion){	
+						if(filtros.nombre_direccion){
+							nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+															
+						}else{
+							nuevaTabla.push(dataTable[i]);
+						}
+					}
+					//- Solo organismo financiero seleccionado
+					if(filtros.abrev_organismo_financiero === dataTable[i].abrev_organismo_financiero && !filtros.nro_operacion){	
+						if(filtros.nombre_direccion){
+							if( filtrarOrgOpePorDependencia(dataTable[i], filtros).actividades_vencidas.length > 0){
+								nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+							}
+							
+						}else{
+							nuevaTabla.push(dataTable[i]);
+						}
+					}
+					//- Solo numero de operacion seleccionado
+					if(!filtros.abrev_organismo_financiero &&  filtros.nro_operacion === dataTable[i].nro_operacion){	
+						if(filtros.nombre_direccion){
+							nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+							
+						}else{
+							nuevaTabla.push(dataTable[i]);
+						}						
+					}							
+					//- filtrar solo por dependencia
+					if(filtros.nombre_direccion && !filtros.abrev_organismo_financiero && !filtros.nro_operacion){		
+						if( filtrarOrgOpePorDependencia(dataTable[i], filtros).actividades_vencidas.length > 0){
+							//- Saca las actividades vencidas que coinciden con la dependencia seleccionada  y las agrega a un arreglo nuevo
+							nuevaTabla.push(filtrarOrgOpePorDependencia(dataTable[i], filtros));
+						}
+					}		
+				}
+				//- establece el nuevo valor del data source usado en el grid
+				dataGrid.option('dataSource', nuevaTabla)
+			}					
+		}
+
+
+		function filtrarOrgOpePorDependencia (tabElement, filtros){
+			let nuevasActividadesVencidas = [];
+			let element = _.cloneDeep(tabElement);
+
+			for(let i = 0; i < dataTable.length; i++ ){
+				for(let j = 0; j < dataTable[i].actividades_vencidas.length; j++ ){		
+					if(dataTable[i].actividades_vencidas[j].nombre_direccion === filtros.nombre_direccion){
+						nuevasActividadesVencidas.push(dataTable[i].actividades_vencidas[j]);
+					}	
+				}	
+			}
+			element.actividades_vencidas = []
+
+			for(let k = 0; k < nuevasActividadesVencidas.length; k ++) {
+				if(nuevasActividadesVencidas[k].nro_operacion === element.nro_operacion){
+					element.actividades_vencidas.push(nuevasActividadesVencidas[k])
+				}
+			}								
+			return element;		
+		}
+	
+		function load() {
+
+			$('#tituloResumen').text('Actividades Vencidas al Mes de ' + mes)
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				colCount: 2,
+				items: [
+					{
+						dataField: 'abrev_organismo_financiero',
+						label: {
+							text: 'Organismo'
+						},
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							showClearButton: true,
+							dataSource: organismos,
+							displayExpr: 'abrev_organismo_financiero',
+							valueExpr: 'abrev_organismo_financiero',
+							onValueChanged: (data) => {
+								filtrarData();
+								//- Envia el valor de la dropdown seleccionado
+							}
+						}
+					},
+					{
+						dataField: 'nro_operacion',
+						label: {
+							text: 'Operación'
+						},
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							showClearButton: true,
+							dataSource: operaciones,
+							displayExpr: 'nro_operacion',
+							valueExpr: 'nro_operacion',
+							onValueChanged: (data) => {
+								filtrarData();
+							}
+						}
+					},
+					{
+						dataField: 'nombre_direccion',
+						editorType: 'dxSelectBox',
+						label: {
+							text: 'Dependencia'
+						},
+						editorOptions: {
+							showClearButton: true,
+							dataSource: dependencias,
+							displayExpr: 'nombre_direccion',
+							valueExpr: 'nombre_direccion',
+							onValueChanged: (data) => {
+								filtrarData();
+							}
+						}
+					}
+				]
+			})
+
+			//- DevExtreme no permite exportar la subtabla, solo la tabla principal, posible alternativa pivot  grid o tree list
+			$('#btnExportarResumen').dxButton({
+				text: 'Exportar a Excel',
+				type: 'default',
+				onClick: (e) => {
+					$('#tablaVencidas').dxDataGrid('instance').exportToExcel()
+				}
+			})
+
+			//- Tabla con reporte de actividades vencidas
+			//- dataGrid = $('#dgdRiesgo').dxDataGrid({
+			//- 	dataSource: dependenciasRiesgo,
+			//- 	paging: {
+			//- 		pageSize: 10
+			//- 	},
+			//- 	pager: {
+			//- 		showPageSizeSelector: true,
+			//- 		allowedPageSizes: [5, 10, 20],
+			//- 		showInfo: true
+			//- 	},
+				
+			//- 	columnResizingMode: 'widget',
+			//- 	allowColumnReordering: true,
+			//- 	allowColumnResizing: true,
+			//- 	columnAutoWidth: true,
+			//- 	columnFixing: { 
+			//- 		enabled: true
+			//- 	},
+			//- 	'export': {
+			//- 		enabled: false,
+			//- 		fileName: 'PRESUPUESTO_EN_RIESGO'
+			//- 	},
+			//- 	showColumnLines: true,
+			//- 	showRowLines: true,
+			//- 	//rowAlternationEnabled: true,
+			//- 	showBorders: false,
+			//- 	width: $('section').width(),
+			//- 	wordWrapEnabled: true,
+			//- 	columns: [
+			//- 		{//numero
+			//- 			dataField: 'numero',
+			//- 			visible: false
+			//- 		},
+			//- 		{//operaciones
+			//- 			dataField: 'abrev_organismo_financiero',
+			//- 			caption: 'Organismos'
+			//- 		},
+			//- 		{//organismos financiero
+			//- 			dataField: 'nro_operacion',
+			//- 			caption: 'No. Operación'
+			//- 		},
+			//- 		{
+			//- 			dataField: 'nombre_direccion',
+			//- 			caption: 'Dependencia'
+			//- 		},
+			//- 		{
+			//- 			dataField: 'riesgo',
+			//- 			caption: 'Monto programado actividades vencidas (US$)',
+			//- 			calculateDisplayValue: (data) => {									
+			//- 				return '$' + data.riesgo.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+			//- 			}
+			//- 		},
+			//- 		{
+			//- 			caption: '% Presupuesto',
+			//- 			calculateDisplayValue: (data) => {									
+			//- 				return ( (data.riesgo * 100) / totales.riesgo ).toFixed(0).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') + '%'
+			//- 			}
+			//- 		}
+			//- 	],
+			//- 	summary: {
+			//- 		totalItems: [
+			//- 			{
+			//- 				column: 'abrev_organismo_financiero',
+			//- 				summaryType: 'min',
+			//- 				customizeText: (data) => {
+			//- 					return 'TOTAL PRESUPUESTO ACTIVIDADES VENCIDAS'
+			//- 				}
+			//- 			},
+			//- 			{
+			//- 				column: 'riesgo',
+			//- 				summaryType: 'sum',
+			//- 				showInColumn: 'nro_operacion',
+			//- 				customizeText: (data) => {
+			//- 					return '$' + data.value.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+			//- 				}
+			//- 			},
+			//- 			{
+			//- 				column: 'nro_operacion',
+			//- 				summaryType: 'min',
+			//- 				showInColumn: 'nombre_direccion',
+			//- 				customizeText: (data) => {
+			//- 					return '% ACTIVIDADES VENCIDAS DEL PRESUPUESTO TOTAL'
+			//- 				}
+			//- 			},
+			//- 			{
+			//- 				column: 'riesgo',
+			//- 				summaryType: 'sum',
+			//- 				customizeText: (data) => {
+			//- 					return ( (data.value * 100) / totales.programado).toFixed(2) + '%'
+			//- 				}
+			//- 			}
+			//- 		]
+			//- 	},
+			//- 	masterDetail: {
+			//- 		enabled: true,
+			//- 		template: (container, options) => {
+
+			//- 			let data = options.data
+			//- 			console.log('data', data);
+			//- 			container.addClass("internal-grid-container")
+						
+			//- 			$('<div>')
+			//- 				.attr('id', 'div_' + options.data.numero)
+			//- 				.append( $('<div>', {'class': 'internal-grid-container', 'id': 'dgdActividades_' + options.data.numero}) )
+			//- 				.appendTo(container)
+						
+			//- 			$.ajax({
+			//- 				type: 'POST',
+			//- 				url: '/pym/reportes/json_actividadVencidas',
+			//- 				data: data,
+			//- 				dataType: 'json',
+			//- 				encode: true,
+			//- 				beforeSend: () => {
+			//- 					$('.spinner').show()
+			//- 				}
+			//- 			})
+			//- 			.done( (response) => {
+							
+			//- 				$('#dgdActividades_' + options.data.numero).dxDataGrid({
+			//- 					dataSource: response,
+			//- 					paging: {
+			//- 						pageSize: 10
+			//- 					},
+			//- 					pager: {
+			//- 						showPageSizeSelector: true,
+			//- 						allowedPageSizes: [5, 10, 20],
+			//- 						showInfo: true
+			//- 					},
+			//- 					columnAutoWidth: true,
+			//- 					showColumnLines: true,
+			//- 					showRowLines: true,
+			//- 					//rowAlternationEnabled: true,
+			//- 					showBorders: true,
+			//- 					wordWrapEnabled: true,
+			//- 					columns: [
+			//- 						{//nro actividad
+			//- 							dataField: 'nro_actividad',
+			//- 							caption: 'No. Actividad'
+			//- 						},
+			//- 						{//nombre actividad
+			//- 							dataField: 'nombre_actividad',
+			//- 							caption: 'Nombre Actividad'
+			//- 						},
+			//- 						{//fecha inicio
+			//- 							dataField: 'fecha_inicio_actividad',
+			//- 							caption: 'Fecha inicio'
+			//- 						},
+			//- 						{//retraso
+			//- 							dataField: 'retraso',
+			//- 							caption: 'Días de retraso'
+			//- 						}
+			//- 					]
+			//- 				})
+							
+			//- 				$('.spinner').hide()
+			//- 			})
+			//- 		}
+			//- 	}
+			//- }).dxDataGrid("instance")
+
+			dataGrid = $('#tablaVencidas').dxDataGrid({
+				dataSource: filteredTable,
+				//- dataSource: dataTable,
+				paging: {
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				columnResizingMode: 'widget',
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				columnAutoWidth: true,
+				columnFixing: { 
+					enabled: true
+				},
+				scrolling: {
+					useNative: true
+					//- mode: "virtual",
+					//- rowRenderingMode: "virtual"
+				},
+				'export': {
+					enabled: false,
+					fileName: 'ACTIVIDADES_VENCIDAS'
+				},
+				showColumnLines: true,
+				showRowLines: true,
+				//rowAlternationEnabled: true,
+				showBorders: false,
+				width: $('section').width(),
+				wordWrapEnabled: true,
+				columns: [
+					{//numero
+						dataField: 'numero',
+						visible: false
+					},
+					{//operaciones
+						dataField: 'abrev_organismo_financiero',
+						caption: 'Organismos',
+					},
+					{//organismos financiero
+						dataField: 'nro_operacion',
+						caption: 'No. Operación'
+					},
+					{//monto pago actividades vencidas
+						dataField: 'monto_pago_vencido',
+						caption: 'Monto programado de actividades vencidas (US$)',
+						format: "currency",
+						calculateDisplayValue: (data) => {	
+							return '$' + data.monto_pago_vencido.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{//Presupuesto
+						dataField: 'porcentaje_presupuesto',
+						caption: '% Presupuesto de Actividades Vencidas',
+						format: "percent",
+						//- calculateDisplayValue: (data) => {		
+						//- 	console.log('en porcentaje', data)							
+						//- 	return ( (data.porcentaje_presupuesto * 100) / totales.porcentaje_presupuesto ).toFixed(0).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') + '%'
+						//- }
+					}
+				],
+				masterDetail: {	
+					enabled: true,
+					template: function(container, options) {
+						let dataTable = options.data;
+
+						$("<div>")
+							.addClass("master-detail-caption")
+							.text(dataTable.nombre_actividad)
+							.appendTo(container);
+
+						$("<div>")
+							.dxDataGrid({
+								columnAutoWidth: true,
+								showBorders: true,
+								showRowLines: true,
+								columns: [ 
+								
+								{//no. correlativo
+									dataField: 'nro_orden_actividad',
+									caption: 'No. Correlativo',
+									visible: false,
+									sortOrder: 'asc',
+									sortIndex: 1,
+								}, {
+									dataField: "nro_actividad",
+									caption: "No. Actividad",		
+									//- sortOrder: 'asc',		
+									sortIndex: 0,					
+									columnAutoWidth: true,						
+								},{
+									dataField: "nombre_actividad",
+									caption: "Nombre de Actividad",
+									width: "70%"								
+								}, {
+									dataField: "nombre_direccion",
+									caption: "Dependencia",
+									width: "35%"								
+								}, {
+									dataField: "fecha_inicio_actividad",
+									caption: "Fecha de Inicio",
+									dataType: "date",
+									columnAutoWidth: true							
+								},{
+									dataField: "fecha_fin_actividad",
+									caption: "Fecha de Fin",						
+									dataType: "date",
+									columnAutoWidth: true						
+								},{
+									dataField: "monto_programado_vencido",
+									caption: "Monto Total Programado",								
+									columnAutoWidth: true,
+									format: "currency",						
+									calculateDisplayValue: (data) => {
+										if(data.monto_programado_vencido === null){
+											data.monto_programado_vencido = 0;
+										}																
+										return '$' + data.monto_programado_vencido.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+									}		
+								},{
+									dataField: "dias_retraso",
+									caption: "Días de retraso",			
+									width: 120								
+								}
+								],
+								dataSource: dataTable.actividades_vencidas
+							}).appendTo(container);
+					}
+				},
+				//- summary: {
+				//- 	totalItems: [
+				//- 		{
+				//- 			column: 'abrev_organismo_financiero',
+				//- 			summaryType: 'min',
+				//- 			customizeText: (data) => {
+				//- 				return 'TOTAL PRESUPUESTO ACTIVIDADES VENCIDAS'
+				//- 			}
+				//- 		},
+				//- 		{
+				//- 			column: 'monto_pago_vencido',
+				//- 			summaryType: 'sum',
+				//- 			showInColumn: 'nro_operacion',
+				//- 			valueFormat: "currency",
+				//- 			//- summaryType: "custom",
+				//- 			customizeText: (data) => {
+				//- 				console.log('data total', data);
+				//- 				return '$' + data.value.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+				//- 			}
+				//- 		},
+				//- 		{
+				//- 			column: 'monto_pago_vencido',
+				//- 			summaryType: 'min',
+				//- 			showInColumn: 'nombre_direccion',
+				//- 			customizeText: (data) => {
+				//- 				return '% ACTIVIDADES VENCIDAS DEL PRESUPUESTO TOTAL'
+				//- 			}
+				//- 		},
+				//- 		{
+				//- 			column: 'porcentaje_presupuesto',
+				//- 			valueFormat: "percent",
+				//- 			summaryType: 'sum',
+				//- 			customizeText: (data) => {
+				//- 				console.log('data de porcentaje', data)
+				//- 				return ( (data.value * 100) / totales.programado).toFixed(2) + '%'
+				//- 			}
+				//- 		}
+				//- 	],
+				//- 	calculateCustomSummary: function(options) {
+				//- 		console.log('options', options)
+				//- 		//- options.totalValue = 100
+				//- 	}
+				//- },
+				//- masterDetail: {
+				//- 	enabled: true,
+				//- 	template: (container, options) => {
+
+				//- 		let data = options.data
+				//- 		console.log('data', data);
+				//- 		container.addClass("internal-grid-container")
+						
+				//- 		$('<div>')
+				//- 			.attr('id', 'div_' + options.data.numero)
+				//- 			.append( $('<div>', {'class': 'internal-grid-container', 'id': 'dgdActividades_' + options.data.numero}) )
+				//- 			.appendTo(container)
+						
+				//- 		$.ajax({
+				//- 			type: 'POST',
+				//- 			url: '/pym/reportes/json_actividadVencidas',
+				//- 			data: data,
+				//- 			dataType: 'json',
+				//- 			encode: true,
+				//- 			beforeSend: () => {
+				//- 				$('.spinner').show()
+				//- 			}
+				//- 		})
+				//- 		.done( (response) => {
+							
+				//- 			$('#dgdActividades_' + options.data.numero).dxDataGrid({
+				//- 				dataSource: response,
+				//- 				paging: {
+				//- 					pageSize: 10
+				//- 				},
+				//- 				pager: {
+				//- 					showPageSizeSelector: true,
+				//- 					allowedPageSizes: [5, 10, 20],
+				//- 					showInfo: true
+				//- 				},
+				//- 				columnAutoWidth: true,
+				//- 				showColumnLines: true,
+				//- 				showRowLines: true,
+				//- 				//rowAlternationEnabled: true,
+				//- 				showBorders: true,
+				//- 				wordWrapEnabled: true,
+				//- 				columns: [
+				//- 					{//nro actividad
+				//- 						dataField: 'nro_actividad',
+				//- 						caption: 'No. Actividad'
+				//- 					},
+				//- 					{//nombre actividad
+				//- 						dataField: 'nombre_actividad',
+				//- 						caption: 'Nombre Actividad'
+				//- 					},
+				//- 					{//fch inicio
+				//- 						dataField: 'fecha_inicio_actividad',
+				//- 						caption: 'Fecha inicio'
+				//- 					},
+				//- 					{//retraso
+				//- 						dataField: 'retraso',
+				//- 						caption: 'Días de retraso'
+				//- 					}
+				//- 				]
+				//- 			})
+							
+				//- 			$('.spinner').hide()
+				//- 		})
+				//- 	}
+				//- }
+			}).dxDataGrid("instance")
+		}

@@ -1,0 +1,615 @@
+#btnExportarResumen.margin-bottom
+#dgdActividades
+script.
+	var actividades = !{JSON.stringify(actividades)},
+		año = $('#frmFiltros').dxForm('instance').option().formData.año_gerencia,
+		sideBarFlag = true
+
+	$( () => {
+
+		$('#btnExportarResumen').dxButton({
+			text: 'Exportar a Excel',
+			type: 'default',
+			onClick: (e) => {
+				$('#dgdActividades').dxDataGrid('instance').exportToExcel()
+			}
+		})
+
+		$('#dgdActividades').dxDataGrid({
+			dataSource: actividades,
+			paging: {
+				pageSize: 10
+			},
+			allowColumnResizing: true,
+			columnResizingMode: "widget",
+			columnAutoWidth: true,
+			showColumnLines: true,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: true,
+			columnFixing: { 
+				enabled: true
+			},
+			scrolling: {
+				useNative: true
+			},
+			headerFilter: {
+				visible: true
+			},
+			'export': {
+				enabled: false,
+				fileName: 'PRESUPUESTO FE ' + año + ' ESTRUCTURA ' +  $('#frmFiltros').dxForm('instance').getEditor('cod_gerencia').option('text')
+			},
+			width: $('section').width(),
+			columns: [
+				{//unidades
+					dataField: 'numero_unidad',
+					caption: 'UN',
+					visibleIndex: 0
+				},
+				{//programa
+					dataField: 'numero_programa',
+					caption: 'PG',
+					visibleIndex: 0
+				},
+				{//sub programa
+					dataField: 'numero_sub_programa',
+					caption: 'SPG',
+					visibleIndex: 1
+				},
+				{//proyecto
+					dataField: 'numero_proyecto',
+					caption: 'PROY',
+					visibleIndex: 2
+				},
+				{//actividades obras
+					dataField: 'numero_act_obra',
+					caption: 'A/O',
+					visibleIndex: 3
+				},
+				{//nombre actividad u obra
+					dataField: 'nombre_act_obra',
+					caption: 'ACTIVIDADES U OBRAS',
+					visibleIndex: 4
+				},
+				{//grupo gasto
+					dataField: 'cod_grupo_gasto',
+					caption: 'Cod GG',
+					visibleIndex: 6
+				},
+				{//nombre grupo gasto
+					dataField: 'nombre_grupo_gasto',
+					caption: 'Grupo de Gasto',
+					visibleIndex: 7
+				},
+				{//sub grupo gasto
+					dataField: 'cod_sub_grupo_gasto',
+					caption: 'Cod SGG',
+					visibleIndex: 8
+				},
+				{//nombre sub grupo gasto
+					dataField: 'nombre_sub_grupo_gasto',
+					caption: 'Nombre Sub Grupo Gasto',
+					visibleIndex: 9
+				},
+				{//objeto gasto
+					dataField: 'cod_objeto_gasto',
+					caption: 'Cod OB G',
+					visibleIndex: 10
+				},
+				{//descripción objeto gasto
+					dataField: 'desc_objeto_gasto',
+					caption: 'Descripción Objeto Gasto',
+					visibleIndex: 11
+				},
+				{//I trimestre
+					caption: 'I Trimestre ' + año,
+					columns: [
+						{//enero
+							caption: 'Enero',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_01',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_01',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//febrero
+							caption: 'Febrero',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_02',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_02',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//marzo
+							caption: 'Marzo',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_03',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_03',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						}
+					]
+				},
+				{//total I Trimestre
+					caption: 'TOTAL',
+					columns: [
+						{
+							caption: 'I Trimestre ' + año,
+							columns: [
+								{
+									caption: 'PP',
+									dataType: 'number',
+									calculateDisplayValue: (data) => {
+										
+										let total = 0
+
+										if (data.prog_01)
+											total += data.prog_01
+
+										if (data.prog_02)
+											total += data.prog_02
+
+										if (data.prog_03)
+											total += data.prog_03
+										
+										return Number(total.toFixed(2))
+									}
+								},
+								{
+									caption: 'PE',
+									dataType: 'number',
+									calculateDisplayValue: (data) => {
+
+										let total = 0
+
+										if (data.ejec_01)
+											total += data.ejec_01
+
+										if (data.ejec_02)
+											total += data.ejec_02
+
+										if (data.ejec_03)
+											total += data.ejec_03
+										
+										return Number(total.toFixed(2))
+									}
+								}
+							]
+						}
+					]
+				},
+				{//II trimestre
+					caption: 'II Trimestre ' + año,
+					columns: [
+						{//abril
+							caption: 'Abril',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_04',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_04',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//mayo
+							caption: 'Mayo',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_05',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_05',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//junio
+							caption: 'Junio',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_06',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_06',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						}
+					]
+				},
+				{//total II Trimestre
+					caption: 'TOTAL',
+					columns: [
+						{
+							caption: 'II Trimestre ' + año,
+							columns: [
+								{
+									caption: 'PP',
+									calculateDisplayValue: (data) => {
+										
+										let total = 0
+
+										if (data.prog_04)
+											total += data.prog_04
+
+										if (data.prog_05)
+											total += data.prog_05
+
+										if (data.prog_06)
+											total += data.prog_06
+										
+										return Number(total.toFixed(2))
+									}
+								},
+								{
+									caption: 'PE',
+									calculateDisplayValue: (data) => {
+
+										let total = 0
+
+										if (data.ejec_04)
+											total += data.ejec_04
+
+										if (data.ejec_05)
+											total += data.ejec_05
+
+										if (data.ejec_06)
+											total += data.ejec_06
+										
+										return Number(total.toFixed(2))
+									}
+								}
+							]
+						}
+					]
+				},
+				{//III trimestre
+					caption: 'III Trimestre ' + año,
+					columns: [
+						{//abril
+							caption: 'Julio',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_07',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_07',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//agosto
+							caption: 'Agosto',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_08',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_08',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//Septiembre
+							caption: 'Septiembre',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_09',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_09',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						}
+					]
+				},
+				{//total III Trimestre
+					caption: 'TOTAL',
+					columns: [
+						{
+							caption: 'III Trimestre ' + año,
+							columns: [
+								{
+									caption: 'PP',
+									calculateDisplayValue: (data) => {
+										
+										let total = 0
+
+										if (data.prog_07)
+											total += data.prog_07
+
+										if (data.prog_08)
+											total += data.prog_08
+
+										if (data.prog_09)
+											total += data.prog_09
+										
+										return Number(total.toFixed(2))
+									}
+								},
+								{
+									caption: 'PE',
+									calculateDisplayValue: (data) => {
+
+										let total = 0
+
+										if (data.ejec_07)
+											total += data.ejec_07
+
+										if (data.ejec_08)
+											total += data.ejec_08
+
+										if (data.prog_09)
+											total += data.ejec_09
+										
+										return Number(total.toFixed(2))
+									}
+								}
+							]
+						}
+					]
+				},
+				{//IV trimestre
+					caption: 'IV Trimestre ' + año,
+					columns: [
+						{//octubre
+							caption: 'Octubre',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_10',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_10',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//noviembre
+							caption: 'Noviembre',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_11',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_11',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						},
+						{//diciembre
+							caption: 'Diciembre',
+							columns: [
+								{
+									caption: 'PP',
+									dataField: 'prog_12',
+									dataType: 'number',
+									allowFiltering: false
+								},
+								{
+									caption: 'PE',
+									dataField: 'ejec_12',
+									dataType: 'number',
+									allowFiltering: false
+								}
+							]
+						}
+					]
+				},
+				{//total IV Trimestre
+					caption: 'TOTAL',
+					columns: [
+						{
+							caption: 'IV Trimestre ' + año,
+							columns: [
+								{
+									caption: 'PP',
+									calculateDisplayValue: (data) => {
+										
+										let total = 0
+
+										if (data.prog_10)
+											total += data.prog_10
+
+										if (data.prog_11)
+											total += data.prog_11
+
+										if (data.prog_12)
+											total += data.prog_12
+										
+										return Number(total.toFixed(2))
+									}
+								},
+								{
+									caption: 'PE',
+									calculateDisplayValue: (data) => {
+
+										let total = 0
+
+										if (data.ejec_10)
+											total += data.ejec_10
+
+										if (data.ejec_11)
+											total += data.ejec_11
+
+										if (data.ejec_12)
+											total += data.ejec_12
+										
+										return Number(total.toFixed(2))
+									}
+								}
+							]
+						}
+					]
+				},
+				{//monto total
+					caption: 'TOTAL ' + año,
+					columns: [
+						{
+							caption: 'PP',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+								
+								let total = 0
+
+								if (data.prog_01)
+									total += data.prog_01
+
+								if (data.prog_02)
+									total += data.prog_02
+
+								if (data.prog_03)
+									total += data.prog_03
+
+								if (data.prog_04)
+									total += data.prog_04
+
+								if (data.prog_05)
+									total += data.prog_05
+
+								if (data.prog_06)
+									total += data.prog_06
+
+								if (data.prog_07)
+									total += data.prog_07
+
+								if (data.prog_08)
+									total += data.prog_08
+
+								if (data.prog_09)
+									total += data.prog_09
+
+								if (data.prog_10)
+									total += data.prog_10
+
+								if (data.prog_11)
+									total += data.prog_11
+
+								if (data.prog_12)
+									total += data.prog_12
+								
+								return Number(total.toFixed(2))
+							}
+						},
+						{
+							caption: 'PE',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+
+								let total = 0
+
+								if (data.ejec_01)
+									total += data.ejec_01
+
+								if (data.ejec_02)
+									total += data.ejec_02
+
+								if (data.ejec_03)
+									total += data.ejec_03
+
+								if (data.ejec_04)
+									total += data.ejec_04
+
+								if (data.ejec_05)
+									total += data.ejec_05
+
+								if (data.ejec_06)
+									total += data.ejec_06
+
+								if (data.ejec_07)
+									total += data.ejec_07
+
+								if (data.ejec_08)
+									total += data.ejec_08
+
+								if (data.ejec_09)
+									total += data.ejec_09
+
+								if (data.ejec_10)
+									total += data.ejec_10
+
+								if (data.ejec_11)
+									total += data.ejec_11
+
+								if (data.ejec_12)
+									total += data.ejec_12
+								
+								return Number(total.toFixed(2))
+
+							}
+						}
+					]
+				}
+			]
+		})
+	})

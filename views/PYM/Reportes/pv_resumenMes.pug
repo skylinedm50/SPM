@@ -1,0 +1,675 @@
+header.major
+	h3#tituloResumenOperacion
+#btnExportarResumen.margin-bottom
+#dgdResumenOperaciones.margin-bottom
+#chtResumenOperaciones.margin-bottom
+script.
+
+	var resumenOperaciones = !{JSON.stringify(resumenOperaciones)},
+		mes = !{JSON.stringify(mes)},
+		chtResumenOperaciones = new Array(),
+		totalProgOpe = 0,
+		totalEjecOpe = 0,
+		datagrid
+
+	for(let i = 0, len = resumenOperaciones.length; i < len; i++) {
+		
+		chtResumenOperaciones.push({
+			direccion: resumenOperaciones[i].nombre_direccion,
+			programado: resumenOperaciones[i].programado,
+			ejecutado: resumenOperaciones[i].ejecutado
+		})
+
+		resumenOperaciones[i].por_ejecutar = resumenOperaciones[i].programado - resumenOperaciones[i].ejecutado
+		resumenOperaciones[i].porcentaje = ( (resumenOperaciones[i].ejecutado * 100) / resumenOperaciones[i].programado )
+		totalProgOpe += resumenOperaciones[i].programado
+		totalEjecOpe += resumenOperaciones[i].ejecutado
+	}
+
+	$( () => {
+
+		$('#tituloResumenOperacion').text('Programado y Ejecutado Mes de ' + mes)
+
+		$('#btnExportarResumen').dxButton({
+			text: 'Exportar a Excel',
+			type: 'default',
+			onClick: (e) => {
+				datagrid.exportToExcel()
+			}
+		})
+
+		$('#chtResumenOperaciones').dxChart({
+			dataSource: chtResumenOperaciones,
+			commonSeriesSettings: {
+				argumentField: 'direccion',
+				type: 'bar',
+				hoverMode: 'allArgumentPoints',
+				selectionMode: 'allArgumentPoints'
+			},
+			series: [
+				{ valueField: 'programado', name: 'Programado' },
+				{
+					//axis: 'ejecutado',
+					type: 'line',				//spline
+					valueField: 'ejecutado',
+					name: 'Ejecutado'
+					//color: '#008fd8'
+				}
+			],
+			title: 'Programado y Ejecutado Mes de ' + mes,
+			legend: {
+				verticalAlignment: 'bottom',
+				horizontalAlignment: 'center'
+			},
+			'export': {
+				enabled: true
+			},
+			tooltip: {
+				enabled: true,
+				customizeTooltip: (args) => {
+
+					let valueText = '$' + args.originalValue.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,'),
+						html
+
+					for(let i = 0, len = resumenOperaciones.length; i < len; i++) {
+						if (resumenOperaciones[i].nombre_direccion === args.argument) {
+							html = `<div class="currency">${args.argument} | ${args.seriesName}</div><div class="currency">${valueText}</div><div class="currency">% de ejecución: ${resumenOperaciones[i].porcentaje.toFixed(2)}</div>`
+							break
+						}
+					}
+
+					return {
+						html: html
+					}
+				}
+			},
+			commonAxisSettings: {
+				label: {
+					alignment: 'center',
+					displayMode: 'stagger',
+					staggeringSpacing: 1
+				}
+			},
+			width: $('section').width(),
+			valueAxis: {
+				visible: true,
+				autoBreaksEnabled: true,
+				maxAutoBreakCount: 3
+			}
+		})
+
+		datagrid =  $('#dgdResumenOperaciones').dxDataGrid({
+			dataSource: resumenOperaciones,
+			allowColumnReordering: true,
+			allowColumnResizing: true,
+			showColumnLines: true,
+			showRowLines: true,
+			rowAlternationEnabled: false,
+			showBorders: true,
+			columnAutoWidth: true,
+			columnFixing: { 
+				enabled: true
+			},
+			'export': {
+				enabled: false,
+				fileName: 'Resumen Programado, Ejecutado de las direcciones del mes de ' + mes
+			},
+			scrolling: {
+				useNative: true
+			},
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			width: $('section').width(),
+			wordWrapEnabled: true,
+			columns: [
+				{//indicador del mes
+					caption: 'Indicador del Mes de ' + mes,
+					cellTemplate: (container, options) => {
+
+						if (options.data.programado > 0 || (options.data.programado == 0 && options.data.ejecutado > 0) ) {
+
+							let src,
+								porcentaje = ( (options.data.ejecutado * 100) / options.data.programado)
+							
+							if (options.data.programado == 0 && options.data.ejecutado > 0)
+								porcentaje = ( (options.data.ejecutado * 100) / 1 ).toFixed(0)
+							
+							if (porcentaje >= 80) {
+								src = '/img/success.png'
+							} else if (porcentaje >= 60) {
+								src = '/img/warning.png'
+							} else {
+								src = '/img/error.png'
+							}
+							
+							$('<div>', { 'class': 'img-container' })
+								.append($('<img>', { 'src': src }))
+								.appendTo(container)
+
+						}
+					},
+					fixed: true,
+					width: 108
+				},
+				{//nombre dirección
+					dataField: 'nombre_direccion',
+					caption: 'DIRECCIÓN',
+					fixed: true,
+					width: 349
+				},
+				{//PRESUPUESTO
+					caption: 'PRESUPUESTO',
+					fixed: true,
+					columns: [
+						{//programado
+							dataField: 'programado',
+							caption: 'PROGRAMADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//ejecutado
+							dataField: 'ejecutado',
+							caption: 'EJECUTADO',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//por ejecutar
+							dataField: 'por_ejecutar',
+							caption: 'POR EJECUTAR',
+							calculateDisplayValue: (data) => {
+								return '$' + data.por_ejecutar.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{//porcentaje
+							dataField: 'porcentaje',
+							caption: '% EJECUCIÓN',
+							cellTemplate: (container, options) => {
+
+								let porc_ejecucion = 0,
+									clase
+
+								if (options.data.programado > 0)
+									porc_ejecucion = ( (options.data.ejecutado * 100) / options.data.programado ).toFixed(0)
+								
+								if (options.data.programado == 0 && options.data.ejecutado > 0)
+									porc_ejecucion = ( (options.data.ejecutado * 100) / 1 ).toFixed(0)
+
+								if (porc_ejecucion >= 100) {
+									clase = 'azul'
+								} else if (porc_ejecucion >= 80) {
+									clase = 'verde'
+								} else if (porc_ejecucion >= 60) {
+									clase = 'amarillo'
+								} else if (porc_ejecucion == 0) {
+									clase = 'cero'
+								} else {
+									clase = 'rojo'
+								}
+
+								$('<div>')
+									.append( $('<div>', {'class': 'text', 'id': 'textRM' + options.data.cod_direccion}) )
+									.append( $('<div>', {'id': 'divRigthRM' + options.data.cod_direccion}) )
+									.appendTo(container)
+
+								$('#divRigthRM' + options.data.cod_direccion)
+									.append( $('<div>', {'class': clase, 'id': 'rigthRM' + options.data.cod_direccion}) )
+
+								if (options.data.programado > 0 || (options.data.programado == 0 && options.data.ejecutado > 0) ) {
+									$('#rigthRM' + options.data.cod_direccion).css('width', '100%')
+									$('#textRM' + options.data.cod_direccion).append( porc_ejecucion + '%' )
+									$('#divRigthRM' + options.data.cod_direccion).css('margin', '-7px -7px -7px -7px')
+								}
+
+							},
+							width: 120
+						}
+					]
+				},
+				{//ENERO
+					caption: 'ENERO',
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_01',
+						calculateDisplayValue: (data) => {
+							return '$' + data.prog_01.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_01',
+						calculateDisplayValue: (data) => {
+							return '$' + data.ejec_01.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					}]
+				},
+				{//FEBRERO
+					caption: 'FEBRERO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_02',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_02.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_02',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_02.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//MARZO
+					caption: 'MARZO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_03',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_03.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_03',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_03.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//ABRIL
+					caption: 'ABRIL',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_04',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_04.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_04',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_04.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//MAYO
+					caption: 'MAYO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_05',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_05.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_05',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_05.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//JUNIO
+					caption: 'JUNIO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_06',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_06.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_06',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_06.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//JULIO
+					caption: 'JULIO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_07',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_07.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_07',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_07.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//AGOSTO
+					caption: 'AGOSTO',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_08',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_08.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_08',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_08.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//SEPTIEMBRE
+					caption: 'SEPTIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_09',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_09.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_09',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_09.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//OCTUBRE
+					caption: 'OCTUBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_10',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_10.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_10',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_10.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//NOVIEMBRE
+					caption: 'NOVIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_11',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_11.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_11',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_11.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				},
+				{//DICIEMBRE
+					caption: 'DICIEMBRE',
+					columns: [
+						{
+							caption: 'Programado',
+							dataField: 'prog_12',
+							calculateDisplayValue: (data) => {
+								return '$' + data.prog_12.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							dataField: 'ejec_12',
+							calculateDisplayValue: (data) => {
+								return '$' + data.ejec_12.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					]
+				}
+			],
+			summary: {
+				totalItems: [
+					{
+						column: 'nombre_direccion',
+						summaryType: 'min',
+						customizeText: (data) => {
+							return 'TOTAL'
+						}
+					},
+					{
+						column: 'programado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejecutado',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'por_ejecutar',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'porcentaje',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return ( (totalEjecOpe * 100) / totalProgOpe ).toFixed(2) + '%'
+						}
+					},
+					{
+						column: 'prog_01',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_01',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_02',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_02',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_03',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_03',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_04',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_04',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_05',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_05',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_06',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_06',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_07',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_07',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_08',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_08',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_09',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_09',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_10',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_10',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_11',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_11',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'prog_12',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						column: 'ejec_12',
+						summaryType: 'sum',
+						customizeText: (data) => {
+							return '$' + data.value.toFixed(2).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					}
+				]
+			}
+		}).dxDataGrid("instance")
+
+		//datagrid.refresh()
+		setTimeout( () => { datagrid.refresh() }, 1000)
+		
+	})

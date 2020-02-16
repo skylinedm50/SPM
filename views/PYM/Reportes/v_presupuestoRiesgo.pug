@@ -1,0 +1,406 @@
+extends ../layout.pug
+
+block head
+	style.
+
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+		.centrar {
+			text-align: center;
+		}
+
+		.internal-grid-container {
+			padding: 10px 0 10px 0;
+		}
+
+block content
+	header.major
+		h2 REPORTE PRESUPUESTO EN RIESGO
+	#frmFiltros.margin-bottom
+	header.major
+		h3#tituloResumen
+	#btnExportarResumen.margin-bottom
+	#dgdRiesgo.margin-bottom
+	#chtRiesgo
+
+block scripts
+	script.
+
+		var organismos = !{JSON.stringify(organismos)},
+			operaciones = !{JSON.stringify(operaciones)},
+			dependencias = !{JSON.stringify(dependencias)},
+			dependenciasRiesgo = !{JSON.stringify(dependenciasRiesgo)},
+			totales = {programado: 0, riesgo: 0},
+			mes = !{JSON.stringify(mes)},
+			totalRiesgo = 0,
+			chtRiesgo = [
+				{tipo: 'Ejecutado', area: 0},
+				{tipo: 'Pendiente por Ejecutar', area: 0},
+				{tipo: 'Riesgo', area: 0}
+			],
+			dataGrid,
+			chart
+		
+		for (let i = 0, len = dependenciasRiesgo.length; i < len; i++) {
+			totales.riesgo += dependenciasRiesgo[i].riesgo
+			totales.programado += dependenciasRiesgo[i].programado_total
+
+			chtRiesgo[0].area += dependenciasRiesgo[i].ejecutado_al_mes
+			chtRiesgo[1].area += dependenciasRiesgo[i].por_ejecutar
+			chtRiesgo[2].area += dependenciasRiesgo[i].riesgo
+		}
+
+		function obtenerDatos() {
+
+			function filtrar (data) {
+
+				let filtros = $('#frmFiltros').dxForm('instance').option().formData
+
+				if (filtros.abrev_organismo_financiero && filtros.nro_operacion && filtros.nombre_direccion) {
+
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nro_operacion}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nro_operacion}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					
+					return data.abrev_organismo_financiero == filtros.abrev_organismo_financiero
+						&& data.nro_operacion == filtros.nro_operacion
+						&& data.nombre_direccion == filtros.nombre_direccion
+
+				} else if (filtros.abrev_organismo_financiero && filtros.nro_operacion) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nro_operacion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nro_operacion}, acumulado al Mes de ${mes}`)
+					
+					return data.abrev_organismo_financiero == filtros.abrev_organismo_financiero
+						&& data.nro_operacion == filtros.nro_operacion
+				
+				} else if (filtros.abrev_organismo_financiero && filtros.nombre_direccion) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					
+					return data.abrev_organismo_financiero == filtros.abrev_organismo_financiero
+						&& data.nombre_direccion == filtros.nombre_direccion
+				
+				} else if (filtros.nro_operacion && filtros.nombre_direccion) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nro_operacion}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nro_operacion}, ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					
+					return data.nro_operacion == filtros.nro_operacion
+						&& data.nombre_direccion == filtros.nombre_direccion
+				
+				} else if (filtros.abrev_organismo_financiero) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.abrev_organismo_financiero}, acumulado al Mes de ${mes}`)
+					
+					return data.abrev_organismo_financiero == filtros.abrev_organismo_financiero
+				
+				} else if (filtros.nro_operacion) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nro_operacion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nro_operacion}, acumulado al Mes de ${mes}`)
+					return data.nro_operacion == filtros.nro_operacion
+				
+				} else if (filtros.nombre_direccion) {
+					
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor por ${filtros.nombre_direccion}, acumulado al Mes de ${mes}`)
+					
+					return data.nombre_direccion == filtros.nombre_direccion
+				
+				} else {
+
+					$('#tituloResumen').text(`Presupuesto en Riesgo Programa Bono Vida Mejor acumulado al Mes de ${mes}`)
+					chart.option('title.text',`Presupuesto en Riesgo Programa Bono Vida Mejor acumulado al Mes de ${mes}`)
+				
+					return data
+				}
+			}
+
+			let dataSource = dependenciasRiesgo.filter(filtrar)
+
+			for (let i = 0; i <= 2; i++) {
+				chtRiesgo[i].area = 0
+			}
+
+			for (let i = 0, len = dataSource.length; i < len; i++) {
+				chtRiesgo[0].area += dataSource[i].ejecutado_al_mes
+				chtRiesgo[1].area += dataSource[i].por_ejecutar
+				chtRiesgo[2].area += dataSource[i].riesgo
+			}
+
+			dataGrid.option('dataSource', dataSource)
+			chart.option('dataSource', chtRiesgo)
+		}
+		
+		function load() {
+
+			$('#tituloResumen').text('Presupuesto en Riesgo Programa Bono Vida Mejor acumulado al Mes de ' + mes)
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				colCount: 2,
+				items: [
+					{
+						dataField: 'abrev_organismo_financiero',
+						label: {
+							text: 'Organismo'
+						},
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							showClearButton: true,
+							dataSource: organismos,
+							displayExpr: 'abrev_organismo_financiero',
+							valueExpr: 'abrev_organismo_financiero',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						}
+					},
+					{
+						dataField: 'nro_operacion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							showClearButton: true,
+							dataSource: operaciones,
+							displayExpr: 'nro_operacion',
+							valueExpr: 'nro_operacion',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						},
+						label: {
+							text: 'Operación'
+						}
+					},
+					{
+						dataField: 'nombre_direccion',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							showClearButton: true,
+							dataSource: dependencias,
+							displayExpr: 'nombre_direccion',
+							valueExpr: 'nombre_direccion',
+							onValueChanged: (data) => {
+								obtenerDatos()
+							}
+						},
+						label: {
+							text: 'Dependencia'
+						}
+					}
+				]
+			})
+
+			$('#btnExportarResumen').dxButton({
+				text: 'Exportar a Excel',
+				type: 'default',
+				onClick: (e) => {
+					$('#dgdRiesgo').dxDataGrid('instance').exportToExcel()
+				}
+			})
+
+			dataGrid = $('#dgdRiesgo').dxDataGrid({
+				dataSource: dependenciasRiesgo,
+				paging: {
+					pageSize: 10
+				},
+				pager: {
+					showPageSizeSelector: true,
+					allowedPageSizes: [5, 10, 20],
+					showInfo: true
+				},
+				allowColumnReordering: true,
+				allowColumnResizing: true,
+				columnAutoWidth: true,
+				columnFixing: { 
+					enabled: true
+				},
+				'export': {
+					enabled: false,
+					fileName: 'PRESUPUESTO_EN_RIESGO'
+				},
+				showColumnLines: true,
+				showRowLines: true,
+				//rowAlternationEnabled: true,
+				showBorders: false,
+				width: $('section').width(),
+				wordWrapEnabled: true,
+				columns: [
+					{//numero
+						dataField: 'numero',
+						visible: false
+					},
+					{//operaciones
+						dataField: 'abrev_organismo_financiero',
+						caption: 'Organismos'
+					},
+					{//organismos financiero
+						dataField: 'nro_operacion',
+						caption: 'No. Operación'
+					},
+					{
+						dataField: 'nombre_direccion',
+						caption: 'Dependencia'
+					},
+					{
+						dataField: 'riesgo',
+						caption: 'Monto en Riesgo',
+						calculateDisplayValue: (data) => {									
+							return '$' + data.riesgo.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+						}
+					},
+					{
+						caption: '% Presupuesto',
+						calculateDisplayValue: (data) => {									
+							return ( (data.riesgo * 100) / totales.riesgo ).toFixed(0).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') + '%'
+						}
+					}
+				],
+				summary: {
+					totalItems: [
+						{
+							column: 'abrev_organismo_financiero',
+							summaryType: 'min',
+							customizeText: (data) => {
+								return 'TOTAL EN RIESGO'
+							}
+						},
+						{
+							column: 'riesgo',
+							summaryType: 'sum',
+							showInColumn: 'nro_operacion',
+							customizeText: (data) => {
+								return '$' + data.value.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							column: 'nro_operacion',
+							summaryType: 'min',
+							showInColumn: 'nombre_direccion',
+							customizeText: (data) => {
+								return '% EN RIESGO DEL PRESUPUESTO TOTAL'
+							}
+						},
+						{
+							column: 'riesgo',
+							summaryType: 'sum',
+							customizeText: (data) => {
+								return ( (data.value * 100) / totales.programado).toFixed(2) + '%'
+							}
+						}
+					]
+				},
+				masterDetail: {
+					enabled: true,
+					template: (container, options) => {
+
+						let data = options.data
+
+						container.addClass("internal-grid-container")
+
+						$('<div>')
+							.attr('id', 'div_' + options.data.numero)
+							.append( $('<div>', {'class': 'internal-grid-container', 'id': 'dgdActividades_' + options.data.numero}) )
+							.appendTo(container)
+						
+						$.ajax({
+							type: 'POST',
+							url: '/pym/reportes/json_actividadRiesgo',
+							data: data,
+							dataType: 'json',
+							encode: true,
+							beforeSend: () => {
+								$('.spinner').show()
+							}
+						})
+						.done( (response) => {
+
+							$('#dgdActividades_' + options.data.numero).dxDataGrid({
+								dataSource: response,
+								paging: {
+									pageSize: 10
+								},
+								pager: {
+									showPageSizeSelector: true,
+									allowedPageSizes: [5, 10, 20],
+									showInfo: true
+								},
+								columnAutoWidth: true,
+								showColumnLines: true,
+								showRowLines: true,
+								//rowAlternationEnabled: true,
+								showBorders: true,
+								wordWrapEnabled: true,
+								columns: [
+									{//nro actividad
+										dataField: 'nro_actividad',
+										caption: 'No. Actividad'
+									},
+									{//nombre actividad
+										dataField: 'nombre_actividad',
+										caption: 'Nombre Actividad'
+									},
+									{//ejecutado
+										dataField: 'ejecutado',
+										caption: 'Presupuesto Ejecutado',
+										calculateDisplayValue: (data) => {									
+											return '$' + data.ejecutado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									},
+									{//riesgo
+										dataField: 'riesgo',
+										caption: 'Monto en Riesgo',
+										calculateDisplayValue: (data) => {									
+											return '$' + data.riesgo.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+										}
+									},
+									{//% de presupuesto en riesgo
+										caption: '% Presupuesto',
+										calculateDisplayValue: (data) => {									
+											return ( (data.riesgo * 100) / totales.riesgo ).toFixed(0).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') + '%'
+										}
+									}
+								]
+							})
+
+							$('.spinner').hide()
+						})
+					}
+				}
+			}).dxDataGrid("instance")
+
+			chart = $('#chtRiesgo').dxPieChart({
+				dataSource: chtRiesgo,
+				series: [
+					{
+						argumentField: 'tipo',
+						border: {
+							visible: true
+						},
+						valueField: 'area',
+						label: {
+							visible: true,
+							position: 'inside',
+							customizeText: (arg) => {
+								return '$' +  arg.value.toFixed(2).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,') + ' (' + arg.percentText + ')'
+							}
+						}
+					}
+				],
+				title: {
+					text:  'Presupuesto Programa Bono Vida Mejor acumulado al Mes de ' + mes,
+					font: {
+						size: 20
+					}
+				},
+				legend: {
+					verticalAlignment: 'bottom',
+					horizontalAlignment: 'center'
+				}
+			}).dxPieChart("instance")
+
+		}

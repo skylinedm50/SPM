@@ -1,0 +1,10 @@
+{
+	"user": "",
+	"password": "",
+	"server": "",
+	"database": "",
+	"pool": {
+		"max": 1,
+		"min": 0
+	}
+}

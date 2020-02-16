@@ -1,0 +1,1066 @@
+header.major
+	h3 Actividades
+#btnNuevaActividad.margin-bottom
+#dgdActividades.margin-bottom
+#dvFocusable(tabindex="0")
+#btnGuardarActividades
+
+script.
+
+	var unidades = !{JSON.stringify(unidades)},
+		programas = !{JSON.stringify(programas)},
+		subProgramas = !{JSON.stringify(subProgramas)},
+		proyectos = !{JSON.stringify(proyectos)},
+		actividadesObras = !{JSON.stringify(actividadesObras)},
+		actividades = !{JSON.stringify(actividades)},
+		grid
+	
+	for (let i = 0, len = actividades.length; i < len; i++) {
+		actividades[i].fecha_inicio_actividad = addDays(new Date(actividades[i].fecha_inicio_actividad), 1)
+		actividades[i].fecha_fin_actividad = addDays(new Date(actividades[i].fecha_fin_actividad), 1)
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	//código para la navegación por medio de las teclas direccionales en el datagrid
+	var currentRowIndex = -1, currentColumnIndex = -1, columnName
+
+	function ShiftRow(shiftCount) {
+
+		let targetRow = currentRowIndex + shiftCount
+		
+		if (targetRow >= 0) {
+			if (grid.getRowElement(targetRow) != undefined) {
+				grid.editCell(targetRow, columnName)
+			}
+		}
+	}
+
+	function ShiftColumn(shiftCount) {
+
+		let targetColumn
+
+		if (columnName === 'prog_01' && shiftCount == -1) {
+			targetColumn = 'cod_direccion'
+		} else if (columnName === 'cod_direccion' && shiftCount == 1) {
+			targetColumn = 'prog_01'
+		} else if (columnName.search('prog_') >= 0 || columnName.search('ejec_') >= 0) {
+
+			let number = Number( columnName.substr(5,6) )
+
+			if (columnName.search('prog_') >= 0 && shiftCount == 1) {
+				targetColumn = 'ejec_' + columnName.substr(5,6)
+			} else if (columnName.search('prog_') >= 0 && shiftCount == -1) {
+				targetColumn = 'ejec_' + (( number < 11  ) ? '0' + (number - 1) : number - 1 )
+			}
+
+			if (columnName.search('ejec_') >= 0 && shiftCount == -1) {
+				targetColumn = 'prog_' + columnName.substr(5,6)
+			} else if (columnName.search('ejec_') >= 0 && shiftCount == 1) {
+				targetColumn = 'prog_' + (( number < 9  ) ? '0' + (number + 1) : number + 1 )
+			}
+
+		} else {
+			targetColumn = currentColumnIndex + shiftCount
+		}
+
+		if (targetColumn.length > 0 || targetColumn >= 0) {
+			if (targetColumn < grid.columnCount() || targetColumn.length >= 0) {
+				grid.editCell(currentRowIndex, targetColumn)
+			}
+		}
+	}
+
+	function SelectNexRow() {
+		ShiftRow(1)
+	}
+
+	function SelectPreviousRow() {
+		ShiftRow(-1)
+	}
+
+	function SelectPreviousColumn() {
+		ShiftColumn(-1)
+	}
+
+	function SelectNextColumn() {
+		ShiftColumn(1)
+	}
+
+	var mapKeysToHandlers = {
+		"ArrowUp": SelectPreviousRow,
+		"ArrowDown": SelectNexRow,
+		"ArrowLeft": SelectPreviousColumn,
+		"ArrowRight": SelectNextColumn
+	}
+	///////////////////////////////////////////////////////////////////////////////////////
+
+	$( () => {
+
+		$('#btnNuevaActividad').dxButton({
+			text: 'Nueva Actividad',
+			type: 'default',
+			onClick: (info) => {
+				grid.addRow()
+			}
+		})
+
+		grid = $('#dgdActividades').dxDataGrid({
+			dataSource: actividades,
+			paging: {
+				pageSize: 10
+			},
+			allowColumnResizing: true,
+			columnResizingMode: "widget",
+			columnAutoWidth: true,
+			showColumnLines: true,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			editing: {
+				mode: 'cell',
+				allowUpdating: true,
+				allowDeleting: true
+			},
+			columnFixing: { 
+				enabled: true
+			},
+			scrolling: {
+				useNative: true
+			},
+			width: $('section').width(),
+			columns: [
+				{//cod_actividad
+					dataField: 'cod_actividad',
+					visible: false
+				},
+				{//unidades
+					dataField: 'cod_unidad',
+					caption: 'Unidad',
+					lookup : {
+						dataSource: unidades,
+						displayExpr: 'nombre_unidad',
+						valueExpr: 'cod_unidad',
+						allowClearing: true
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					setCellValue: function (rowData, value) {
+						rowData.cod_programa = null
+						rowData.cod_sub_programa = null
+						rowData.cod_proyecto = null
+						rowData.cod_act_obra = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 0,
+					minWidth: 200
+				},
+				{//programa
+					dataField: 'cod_programa',
+					caption: 'Programa',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: programas
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['cod_unidad', '=', options.data.cod_unidad]
+							}
+
+							return dataSourceConfiguration
+						},
+						displayExpr: 'nombre_programa',
+						valueExpr: 'cod_programa',
+						allowClearing: true
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					setCellValue: function (rowData, value) {
+						rowData.cod_sub_programa = null
+						rowData.cod_proyecto = null
+						rowData.cod_act_obra = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 0,
+					minWidth: 200
+				},
+				{//sub programa
+					dataField: 'cod_sub_programa',
+					caption: 'Sub-Programa',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: subProgramas
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['cod_programa', '=', options.data.cod_programa]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_sub_programa',
+						displayExpr: 'nombre_sub_programa',
+						allowClearing: true
+					},
+					setCellValue: function (rowData, value) {
+						rowData.cod_proyecto = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 1,
+					minWidth: 200
+				},
+				{//proyecto
+					dataField: 'cod_proyecto',
+					caption: 'Proyecto',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: proyectos
+							}
+
+							if (options.data && options.data.cod_sub_programa) {
+								dataSourceConfiguration.filter = ['cod_sub_programa', '=', options.data.cod_sub_programa]
+							} else if (options.data && options.data.cod_programa) {
+								dataSourceConfiguration.filter = ['cod_programa', '=', options.data.cod_programa]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_proyecto',
+						displayExpr: 'nombre_proyecto',
+						allowClearing: true
+					},
+					setCellValue: function (rowData, value) {
+						rowData.cod_act_obra = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 2,
+					minWidth: 200
+				},
+				{//actividades obras
+					dataField: 'cod_act_obra',
+					caption: 'Obra',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: actividadesObras
+							}
+
+							if (options.data && options.data.cod_proyecto) {
+								dataSourceConfiguration.filter = ['cod_proyecto', '=', options.data.cod_proyecto]
+							} else if (options.data && options.data.cod_programa) {
+								dataSourceConfiguration.filter = ['cod_programa', '=', options.data.cod_programa]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_act_obra',
+						displayExpr: 'nombre_act_obra',
+						allowClearing: true
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 3,
+					minWidth: 200
+				},
+				{//grupo gasto
+					dataField: 'cod_grupo_gasto',
+					caption: 'Cod GG',
+					lookup: {
+						dataSource: gruposGastos,
+						valueExpr: 'cod_grupo_gasto',
+						displayExpr: 'cod_grupo_gasto',
+						allowClearing: true
+					},
+					setCellValue: function (rowData, value) {
+
+						rowData.cod_sub_grupo_gasto = null
+						rowData.nombre_sub_grupo_gasto = null
+						rowData.cod_objeto_gasto = null
+						rowData.desc_objeto_gasto = null
+
+						for (let i = 0, len = gruposGastos.length; i < len; i++) {
+							if (gruposGastos[i].cod_grupo_gasto == value) {
+								rowData.nombre_grupo_gasto = gruposGastos[i].nombre_grupo_gasto
+								break
+							}
+						}
+
+						this.defaultSetCellValue(rowData, value)
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 6
+				},
+				{//nombre grupo gasto
+					dataField: 'nombre_grupo_gasto',
+					caption: 'Nombre Grupo Gasto',
+					validationRules: [
+						{ type: 'required' }
+					],
+					allowEditing: false,
+					visibleIndex: 7
+				},
+				{//sub grupo gasto
+					dataField: 'cod_sub_grupo_gasto',
+					caption: 'Cod SGG',
+					lookup: {
+						//dataSource: subgruposGastos,
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: subgruposGastos
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['cod_grupo_gasto', '=', options.data.cod_grupo_gasto]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_sub_grupo_gasto',
+						displayExpr: 'cod_sub_grupo_gasto',
+						allowClearing: true
+					},
+					setCellValue: function (rowData, value) {
+
+						rowData.cod_objeto_gasto = null
+						rowData.desc_objeto_gasto = null
+
+						for (let i = 0, len = subgruposGastos.length; i < len; i++) {
+							if (subgruposGastos[i].cod_sub_grupo_gasto == value) {
+								rowData.nombre_sub_grupo_gasto = subgruposGastos[i].nombre_sub_grupo_gasto
+								break
+							}
+						}
+
+						this.defaultSetCellValue(rowData, value)
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 8
+				},
+				{//nombre sub grupo gasto
+					dataField: 'nombre_sub_grupo_gasto',
+					caption: 'Nombre Sub Grupo Gasto',
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 9
+				},
+				{//objeto gasto
+					dataField: 'cod_objeto_gasto',
+					caption: 'Cod OG',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: objetosGastos
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['cod_sub_grupo_gasto', '=', options.data.cod_sub_grupo_gasto]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_objeto_gasto',
+						displayExpr: 'cod_objeto_gasto',
+						allowClearing: true
+					},
+					setCellValue: function (rowData, value) {
+
+						for (let i = 0, len = objetosGastos.length; i < len; i++) {
+							if (objetosGastos[i].cod_objeto_gasto == value) {
+								rowData.desc_objeto_gasto = objetosGastos[i].desc_objeto_gasto
+								break
+							}
+						}
+
+						this.defaultSetCellValue(rowData, value)
+
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 10
+				},
+				{//descripción objeto gasto
+					dataField: 'desc_objeto_gasto',
+					caption: 'Descripción Objeto Gasto',
+					validationRules: [
+						{ type: 'required' }
+					],
+					allowEditing: false,
+					visibleIndex: 11
+				},
+				{//fecha inicio
+					dataField: 'fecha_inicio_actividad',
+					caption: 'Fecha Inicio',
+					dataType: "date",
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 12
+				},
+				{//fecha fin
+					dataField: 'fecha_fin_actividad',
+					caption: 'Fecha Fin',
+					dataType: "date",
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 13
+				},
+				{//dirección
+					dataField: 'nombre_direccion',
+					caption: 'Dirección',
+					lookup : {
+						dataSource: direcciones,
+						displayExpr: 'nombre_direccion',
+						valueExpr: 'nombre_direccion',
+						allowClearing: true
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					setCellValue: function (rowData, value) {
+						rowData.nombre_direccion = null
+						this.defaultSetCellValue(rowData, value)
+					},
+					visibleIndex: 14,
+					minWidth: 200
+				},
+				{//responsable
+					dataField: 'cod_direccion',
+					caption: 'Responsable',
+					lookup: {
+						dataSource: (options) => {
+
+							let dataSourceConfiguration = {
+								store: responsables
+							}
+
+							if (options.data) {
+								dataSourceConfiguration.filter = ['nombre_direccion', '=', options.data.nombre_direccion]
+							}
+
+							return dataSourceConfiguration
+						},
+						valueExpr: 'cod_direccion',
+						displayExpr: 'responsable_direccion',
+						allowClearing: true
+					},
+					validationRules: [
+						{ type: 'required' }
+					],
+					visibleIndex: 15,
+					minWidth: 200
+				},
+				{//monto programado total
+					caption: 'Montos Totales',
+					visibleIndex: 16,
+					columns: [
+						{
+							caption: 'Programado',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+								
+								let total = 0
+
+								if (data.prog_01)
+									total += data.prog_01
+
+								if (data.prog_02)
+									total += data.prog_02
+
+								if (data.prog_03)
+									total += data.prog_03
+
+								if (data.prog_04)
+									total += data.prog_04
+
+								if (data.prog_05)
+									total += data.prog_05
+
+								if (data.prog_06)
+									total += data.prog_06
+
+								if (data.prog_07)
+									total += data.prog_07
+
+								if (data.prog_08)
+									total += data.prog_08
+
+								if (data.prog_09)
+									total += data.prog_09
+
+								if (data.prog_10)
+									total += data.prog_10
+
+								if (data.prog_11)
+									total += data.prog_11
+
+								if (data.prog_12)
+									total += data.prog_12
+								
+								return 'L.' + (total.toFixed(2)).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						},
+						{
+							caption: 'Ejecutado',
+							allowEditing: false,
+							calculateDisplayValue: (data) => {
+
+								let total = 0
+
+								if (data.ejec_01)
+									total += data.ejec_01
+
+								if (data.ejec_02)
+									total += data.ejec_02
+
+								if (data.ejec_03)
+									total += data.ejec_03
+
+								if (data.ejec_04)
+									total += data.ejec_04
+
+								if (data.ejec_05)
+									total += data.ejec_05
+
+								if (data.ejec_06)
+									total += data.ejec_06
+
+								if (data.ejec_07)
+									total += data.ejec_07
+
+								if (data.ejec_08)
+									total += data.ejec_08
+
+								if (data.ejec_09)
+									total += data.ejec_09
+
+								if (data.ejec_10)
+									total += data.ejec_10
+
+								if (data.ejec_11)
+									total += data.ejec_11
+
+								if (data.ejec_12)
+									total += data.ejec_12
+								
+								return 'L.' + (total.toFixed(2)).toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+
+							}
+						}
+					]
+				},
+				{//enero
+					caption: 'Enero',
+					visibleIndex: 17,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_01',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_01) {
+								return 'L.' + data.prog_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_01',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_01) {
+								return 'L.' + data.ejec_01.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//febrero
+					caption: 'Febrero',
+					visibleIndex: 18,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_02',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_02) {
+								return 'L.' + data.prog_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_02',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_02) {
+								return 'L.' + data.ejec_02.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//marzo
+					caption: 'Marzo',
+					visibleIndex: 19,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_03',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_03) {
+								return 'L.' + data.prog_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_03',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_03) {
+								return 'L.' + data.ejec_03.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//abril
+					caption: 'Abril',
+					visibleIndex: 20,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_04',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_04) {
+								return 'L.' + data.prog_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_04',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_04) {
+								return 'L.' + data.ejec_04.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//mayo
+					caption: 'Mayo',
+					visibleIndex: 21,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_05',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_05) {
+								return 'L.' + data.prog_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_05',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_05) {
+								return 'L.' + data.ejec_05.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//junio
+					caption: 'Junio',
+					visibleIndex: 22,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_06',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_06) {
+								return 'L.' + data.prog_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_06',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_06) {
+								return 'L.' + data.ejec_06.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//julio
+					caption: 'Julio',
+					visibleIndex: 23,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_07',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_07) {
+								return 'L.' + data.prog_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_07',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_07) {
+								return 'L.' + data.ejec_07.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//agosto
+					caption: 'Agosto',
+					visibleIndex: 24,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_08',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_08) {
+								return 'L.' + data.prog_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_08',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_08) {
+								return 'L.' + data.ejec_08.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//septiembre
+					caption: 'Septiembre',
+					visibleIndex: 25,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_09',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_09) {
+								return 'L.' + data.prog_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_09',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_09) {
+								return 'L.' + data.ejec_09.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//octubre
+					caption: 'Octubre',
+					visibleIndex: 26,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_10',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_10) {
+								return 'L.' + data.prog_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_10',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_10) {
+								return 'L.' + data.ejec_10.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//noviembre
+					caption: 'Noviembre',
+					visibleIndex: 27,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_11',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_11) {
+								return 'L.' + data.prog_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_11',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_11) {
+								return 'L.' + data.ejec_11.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				},
+				{//diciembre
+					caption: 'Diciembre',
+					visibleIndex: 28,
+					columns: [{
+						caption: 'Programado',
+						dataField: 'prog_12',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.prog_12) {
+								return 'L.' + data.prog_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					},
+					{
+						caption: 'Ejecutado',
+						dataField: 'ejec_12',
+						dataType: 'number',
+						calculateDisplayValue: (data) => {
+							if (data.ejec_12) {
+								return 'L.' + data.ejec_12.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+							}
+						}
+					}]
+				}
+			],
+			masterDetail: {
+				enabled: true,
+				template: (container, options) => {
+
+					let data = options.data
+
+					container.addClass("internal-grid-container")
+
+					$('<div>')
+						.attr('id', 'div_' + data.cod_actividad)
+						.css('height', '500px')
+						.css('overflow-y', 'scroll')
+						.append( $('<div>', {'class': 'internal-grid-container', 'id': 'trlRegion_' + data.cod_actividad}) )
+						.append( $('<div>', {'id': 'btnGuardarRegion_' + data.cod_actividad}) )
+						.appendTo(container)
+					
+					$.ajax({
+						type: 'POST',
+						url: '/fn/actividades/json_regionalizacion',
+						data: data,
+						dataType: 'json',
+						encode: true,
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+
+						$('#trlRegion_' + data.cod_actividad).dxTreeList({
+							dataSource: response,
+							keyExpr: "codigo",
+							parentIdExpr: "padre",
+							editing: {
+								mode: "cell",
+								allowAdding: false,
+								allowUpdating: true,
+								allowDeleting: false
+							},
+							columns: [
+								{
+									dataField: 'nombre',
+									caption: 'Nombre',
+									allowEditing: false
+								},
+								{
+									dataField: 'monto',
+									caption: 'Monto',
+									dataType: 'number',
+								}
+							],
+							showRowLines: true,
+							columnAutoWidth: true,
+							onEditorPreparing: (e) => {
+								if (e.row.data.padre == 0)
+									e.component.cancelEditData()
+							},
+							onRowUpdated: (e) => {
+
+								let dataSource = e.component.option().dataSource
+
+								for (let i = 0, len = dataSource.length; i < len; i++) {
+									if (e.key === dataSource[i].codigo) {
+										dataSource[i].enviar = true
+										break
+									}
+								}
+							}
+						})
+
+						$('#btnGuardarRegion_' + data.cod_actividad).dxButton({
+							text: 'Guardar',
+							type: 'default',
+							onClick: (info) => {
+
+								let treeList = $('#trlRegion_' + data.cod_actividad).dxTreeList('instance')
+
+								treeList.saveEditData().then( () => {
+
+									let dataSource = treeList.option().dataSource,
+										data2 = {
+											cod_actividad: data.cod_actividad,
+											regionalizacion: new Array()
+										}
+									
+									for (let i = 0, len = dataSource.length; i < len; i++) {
+										if (dataSource[i].enviar)
+											data2.regionalizacion.push(
+												{
+													cod_municipio: dataSource[i].cod_municipio,
+													monto: dataSource[i].monto,
+													existe: dataSource[i].existe
+												}
+											)
+									}
+
+									$.ajax({
+										type: 'POST',
+										url: '/fn/actividades/guardarRegionalizacion',
+										contentType: 'application/json',
+										data: JSON.stringify(data2),
+										dataType: 'json',
+										encode: true,
+										beforeSend: () => {
+											$('.spinner').show()
+										}
+									})
+									.done( (response) => {									
+										$('.spinner').hide()
+									})
+								})
+							}
+						})
+
+						$('.spinner').hide()
+					})
+				}
+			},
+			onRowInserted: (e) => {
+				actividades[actividades.length - 1].enviar = true				
+				grid.refresh()
+			},
+			onRowUpdated: (e) => {
+
+				for (let i = 0, len = actividades.length; i < len; i++) {
+					if (e.key.cod_actividad == actividades[i].cod_actividad && e.key.__KEY__ == actividades[i].__KEY__) {
+						actividades[i].enviar = true
+					}
+				}
+
+				grid.refresh()
+			},
+			onRowRemoved: (e) => {
+
+				if (e.data.cod_actividad != null) {
+					$.ajax({
+						type: 'POST',
+						url: '/fn/actividades/eliminarActividad',
+						data: {
+							codigo : e.data.cod_actividad
+						},
+						dataType: 'json',
+						encode: true
+					})
+				}
+
+				$('#btnGuardarActividades').dxButton('instance')._clickAction()
+			},
+			//onEditorPreparing y onEditingStart, son parte del código para la navegación con las direccionales
+			onEditorPreparing: (e) => {
+				e.editorOptions.onKeyDown = (e) => {
+
+					let findHandler = mapKeysToHandlers[e.event.key]
+
+					if (findHandler) {
+						$("#dvFocusable").focus() // to save edit data
+						findHandler()
+						e.event.preventDefault()
+						e.event.stopPropagation()
+					}
+				}
+			},
+			onEditingStart: (e) => {
+				currentRowIndex = grid.getRowIndexByKey(e.key)
+				currentColumnIndex = grid.columnOption(e.column.dataField, "visibleIndex")
+				columnName = e.column.dataField
+			}
+		}).dxDataGrid("instance")
+		
+		$('#btnGuardarActividades').dxButton({
+			text: 'Guardar Actividades',
+			type: 'default',
+			onClick: (info) => {
+
+				grid.saveEditData().then( () => {
+
+					let data = {
+						filtros: $('#frmFiltros').dxForm('instance').option().formData,
+						actividades: new Array()
+					}
+
+					for (let i = 0, len = actividades.length; i < len; i++) {
+						if (actividades[i].enviar)
+							data.actividades.push(actividades[i])
+					}
+
+					for (let i = 0, len = data.actividades.length; i < len; i++) {
+						data.actividades[i].fecha_inicio_actividad = formatDate(data.actividades[i].fecha_inicio_actividad)
+						data.actividades[i].fecha_fin_actividad = formatDate(data.actividades[i].fecha_fin_actividad)
+					}
+					
+					$.ajax({
+						type: 'POST',
+						url: '/fn/actividades/guardarActividades',
+						contentType: 'application/json',
+						data: JSON.stringify(data),
+						dataType: 'json',
+						encode: true,
+						beforeSend: () => {
+							$('.spinner').show()
+						}
+					})
+					.done( (response) => {
+						$('.spinner').hide()
+						$('#frmFiltros').dxForm('instance').getEditor('btnObtenerActividades')._clickAction()
+					})
+				})
+			}
+		})
+	})

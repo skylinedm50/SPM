@@ -1,0 +1,130 @@
+extends ../layout.pug
+
+block head
+	script(src="/js/FN/shared.js")
+	style.
+
+		.margin-bottom {
+			margin-bottom: 20px;
+		}
+
+		.dx-header-row > td[role="columnheader"]> div.dx-datagrid-text-content {
+			/*font-size: 17px;*/
+			font-weight: bold;
+			text-align: center;
+		}
+
+block content
+	header.major
+		h2 Reporte POA
+	header.major
+		h3 Filtros
+	#frmFiltros.margin-bottom
+	#divActividades
+	include ../../spinner.pug
+
+block scripts
+	script.
+
+		var datos = !{JSON.stringify(gerencias)},
+			gerencias = new Array(),
+			años
+
+		for (let i = 0, len = datos.length; i < len; i++) {
+
+			if (i == 0) {
+				gerencias.push(datos[i].nombre_gerencia)
+			} else {
+				for (let j = 0, len2 = gerencias.length; j < len2; j++) {
+
+					if (gerencias[j] != datos[i].nombre_gerencia) {
+						gerencias.push(datos[i].nombre_gerencia)
+						break
+					}
+				}
+			}
+		}
+
+
+		function load() {
+			
+			$('a[href$="sidebar"]').click( () => {
+				if (sideBarFlag) {
+					$('#dgdActividades').dxDataGrid('instance').option('width', $('#dgdActividades').dxDataGrid('instance').option('width') + $('#sidebar').width())
+					sideBarFlag = false
+				} else {
+					$('#dgdActividades').dxDataGrid('instance').option('width', $('#dgdActividades').dxDataGrid('instance').option('width') - $('#sidebar').width())
+					sideBarFlag = true
+				}
+			})
+
+			$('#frmFiltros').dxForm({
+				labelLocation: 'top',
+				items: [
+					{
+						dataField: 'cod_gerencia',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: gerencias,
+							onValueChanged: (data) => {
+								let años = new Array()
+
+								for (let i = 0, len = datos.length; i < len; i++) {
+									if (datos[i].nombre_gerencia == data.value) {
+										años.push(datos[i].año_gerencia)
+									}
+								}
+
+								$('#frmFiltros').dxForm('instance').getEditor('año_gerencia').option('dataSource', años)
+							}
+						},
+						label: {
+							text: 'Gerencia Administrativa'
+						},
+						isRequired: true
+					},
+					{
+						dataField: 'año_gerencia',
+						editorType: 'dxSelectBox',
+						editorOptions: {
+							dataSource: años,
+						},
+						label: {
+							text: 'Año'
+						},
+						isRequired: true
+					},
+					{
+						dataField: 'btnObtenerActividades',
+						label: {
+							visible: false
+						},
+						editorType: 'dxButton',
+						editorOptions: {
+							text: 'Obtener Actividades',
+							type: 'default',
+							onClick: (e) => {
+								let data = $('#frmFiltros').dxForm('instance').option().formData,
+									result = $('#frmFiltros').dxForm('instance').validate()
+
+								if (result.isValid) {
+									$.ajax({
+										type: 'POST',
+										url: '/fn/reportes/pv_dgdActividadesPOA',
+										data: data,
+										dataType: 'html',
+										beforeSend: () => {
+											$('.spinner').show()
+										}
+									})
+									.done( (response) => {
+										$('#divActividades').html(response)
+										$('.spinner').hide()
+									})
+								}
+							}
+						}
+					}
+				]
+			})
+		}

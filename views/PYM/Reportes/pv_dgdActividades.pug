@@ -1,0 +1,292 @@
+#dgdActividades
+script.
+	var actividades = !{JSON.stringify(actividades)},
+		flagBID
+	
+	function ordenarActividadesBID(array) {
+
+		let globalArray = new Array()
+
+		for (let i = 0, len = array.length; i < len; i++) {
+
+			globalArray.push(array[i].nro_actividad.split('.'))
+
+			for (let j = 0, len2 = globalArray[i].length; j < len2; j++) {
+				globalArray[i][j] = Number(globalArray[i][j])
+			}
+		}
+
+		for (let i = 1, len = globalArray.length; i < len; i++) {
+
+			for (let j = 0, len2 = len - i; j < len2; j++) {
+
+				let flag
+
+				for (let k = 0, len3 = globalArray[j + 1].length; k < len3; k++) {
+					if (globalArray[j][k] > globalArray[j + 1][k] && globalArray[j].slice(0,k).join('.') == globalArray[j + 1].slice(0,k).join('.')) {
+						flag = true
+						break
+					}
+				}
+
+				if (flag) {
+					let aux = globalArray[j]
+					globalArray[j] = globalArray[j + 1]
+					globalArray[j + 1] = aux
+				}
+			}
+		}
+
+		for (let i = 0, len = globalArray.length; i < len; i++) {
+			globalArray[i] = [i + 1, globalArray[i].join('.')]
+		}
+
+		return globalArray
+	}
+
+	for (let i = 0, len = actividades.length; i < len; i++) {
+		actividades[i].fecha_inicio_actividad = addDays(new Date(actividades[i].fecha_inicio_actividad), 1)
+		actividades[i].fecha_fin_actividad = addDays(new Date(actividades[i].fecha_fin_actividad), 1)
+	}
+
+	for (let i = 0, len = operaciones.length; i < len; i++) {
+
+		if (operaciones[i].cod_operacion == $('#frmFiltros').dxForm('instance').option().formData.cod_operacion) {
+			flagBID = ( (operaciones[i].abrev_organismo_financiero == 'BID') ? true : false )
+
+			if (flagBID) {
+
+				let array = ordenarActividadesBID(actividades)
+
+				for (let i = 0, len = actividades.length; i < len; i++) {
+					for (let j = 0, len2 = array.length; j < len2; j++) {
+						if (actividades[i].nro_actividad == array[j][1]) {
+							actividades[i].nro_orden_actividad = array[j][0]
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	$( () => {
+
+		$('#dgdActividades').dxDataGrid({
+			dataSource: actividades,
+			paging: {
+				pageSize: 10
+			},
+			pager: {
+				showPageSizeSelector: true,
+				allowedPageSizes: [5, 10, 20],
+				showInfo: true
+			},
+			allowColumnReordering: true,
+			allowColumnResizing: true,
+			columnAutoWidth: true,
+			columnFixing: { 
+				enabled: true
+			},
+			showColumnLines: false,
+			showRowLines: true,
+			rowAlternationEnabled: true,
+			showBorders: false,
+			//columnHidingEnabled: true,
+			width: $('section').width(),
+			wordWrapEnabled: true,
+			'export': {
+				enabled: true,
+				fileName: 'POA_PEP_' + $('#frmFiltros').dxForm('instance').getEditor('cod_operacion').option('text') + '_AÑO_' + $('#frmFiltros').dxForm('instance').getEditor('año_actividad').option('text')
+			},
+			scrolling: {
+				useNative: true
+			},
+			onExporting: (dataGrid) => {
+
+				dataGrid.component.beginUpdate()
+				
+				dataGrid.component.option('columns[8].calculateDisplayValue', (data) => {
+					return data.programado
+				})
+
+				dataGrid.component.option('columns[9].calculateDisplayValue', (data) => {
+					return data.pagado
+				})
+
+				dataGrid.component.option('columns[10].calculateDisplayValue', (data) => {
+					return data.por_ejecutar
+				})
+
+				dataGrid.component.option('columns[7].visible', true)
+				dataGrid.component.option('columns[13].visible', true)
+			},
+			onExported: (dataGrid) => {
+				
+				dataGrid.component.option('columns[8].calculateDisplayValue', (data) => {
+					return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+				})
+
+				dataGrid.component.option('columns[9].calculateDisplayValue', (data) => {
+					return '$' + data.pagado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+				})
+
+				dataGrid.component.option('columns[10].calculateDisplayValue', (data) => {
+					return '$' + data.por_ejecutar.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+				})
+
+				dataGrid.component.option('columns[7].visible', false)
+				dataGrid.component.option('columns[13].visible', false)
+
+				dataGrid.component.endUpdate()
+			},
+			columns: [
+				{//no. correlativo
+					dataField: 'nro_orden_actividad',
+					caption: 'No. Correlativo',
+					dataType: "number",
+					sortOrder: 'asc',
+					visible: false
+				},
+				{//componente
+					caption: 'Componente',
+					calculateDisplayValue: (data) => {
+						return data.nro_actividad.split('.')[0]
+					},
+					width: 80
+				},
+				{//subcomponente
+					caption: 'Subcomponente',
+					calculateDisplayValue: (data) => {
+						let array = data.nro_actividad.split('.')
+						
+						if (array.length == 3) {
+							return array[0] + '.' + array[1]
+						} else {
+							return ''
+						}
+					},
+					width: 80,
+					visible: false
+				},
+				{//indicador
+					caption: 'Indicador',
+					dataField: 'nombre_ind_prod',
+					width: 400,
+					visible: false
+				},
+				{//nro actividad
+					dataField: 'nro_actividad',
+					caption: 'No. Actividad',
+					width: 80
+				},
+				{//actividad
+					dataField: 'nombre_actividad',
+					caption: 'Actividad',
+					width: 500
+				},
+				{//fecha inicio
+					dataField: 'fecha_inicio_actividad',
+					caption: 'Fecha Inicio',
+					dataType: 'date'
+				},
+				{//fecha fin
+					dataField: 'fecha_fin_actividad',
+					caption: 'Fecha Fin',
+					dataType: 'date',
+					visible: false
+				},
+				{//programado
+					dataField: 'programado',
+					caption: 'Monto Programado (US$)',
+					calculateDisplayValue: (data) => {
+						return '$' + data.programado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+					}
+				},
+				{//pagado
+					dataField: 'pagado',
+					caption: 'Monto Ejecutado (US$)',
+					calculateDisplayValue: (data) => {
+						return '$' + data.pagado.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+					}
+				},
+				{//por ejecutar
+					dataField: 'por_ejecutar',
+					caption: 'Por Ejecutar (US$)',
+					calculateDisplayValue: (data) => {
+						return '$' + data.por_ejecutar.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1,')
+					}
+				},
+				{//unidad
+					dataField: 'nombre_direccion',
+					caption: 'Unidad Responsable',
+					width: '300'
+				},
+				{//responsable
+					dataField: 'responsable_direccion',
+					caption: 'Responsable'
+				},
+				{//ejecución mensual
+					caption: 'Ejecución Mensual',
+					visible: false,
+					columns: [
+						{
+							caption: 'Enero',
+							dataField: 'ejec_01'
+						},
+						{
+							caption: 'Febrero',
+							dataField: 'ejec_02'
+						},
+						{
+							caption: 'Marzo',
+							dataField: 'ejec_03'
+						},
+						{
+							caption: 'Abril',
+							dataField: 'ejec_04'
+						},
+						{
+							caption: 'Mayo',
+							dataField: 'ejec_05'
+						},
+						{
+							caption: 'Junio',
+							dataField: 'ejec_06'
+						},
+						{
+							caption: 'Julio',
+							dataField: 'ejec_07'
+						},
+						{
+							caption: 'Agosto',
+							dataField: 'ejec_08'
+						},
+						{
+							caption: 'Septiembre',
+							dataField: 'ejec_09'
+						},
+						{
+							caption: 'Octubre',
+							dataField: 'ejec_10'
+						},
+						{
+							caption: 'Noviembre',
+							dataField: 'ejec_11'
+						},
+						{
+							caption: 'Diciembre',
+							dataField: 'ejec_12'
+						}
+					]
+				}
+			]
+		})
+
+		if (flagBID) {
+			$('#dgdActividades').dxDataGrid('instance').option('columns[3].visible', true)
+		} else {
+			$('#dgdActividades').dxDataGrid('instance').option('columns[2].visible', true)
+		}
+
+	})
